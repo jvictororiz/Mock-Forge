@@ -1,0 +1,253 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24242c"/>
+      <stop offset="1" stop-color="#141419"/>
+    </linearGradient>
+
+    <linearGradient id="braceMain" x1="48" y1="140" x2="464" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66e8b0"/>
+      <stop offset="0.5" stop-color="#49cc90"/>
+      <stop offset="1" stop-color="#279866"/>
+    </linearGradient>
+
+    <linearGradient id="steelTop" x1="142" y1="108" x2="368" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#ececf2"/>
+      <stop offset="1" stop-color="#a8a8b4"/>
+    </linearGradient>
+
+    <linearGradient id="steelFront" x1="142" y1="188" x2="368" y2="268" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d2d2dc"/>
+      <stop offset="1" stop-color="#6e6e7a"/>
+    </linearGradient>
+
+    <linearGradient id="steelPeen" x1="352" y1="128" x2="448" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#bcbcc8"/>
+      <stop offset="1" stop-color="#585866"/>
+    </linearGradient>
+
+    <linearGradient id="wood" x1="244" y1="278" x2="268" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d8aa6e"/>
+      <stop offset="0.55" stop-color="#a8743f"/>
+      <stop offset="1" stop-color="#5f3f22"/>
+    </linearGradient>
+
+    <linearGradient id="woodSheen" x1="252" y1="292" x2="258" y2="585" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="sparkWarm" x1="84" y1="108" x2="132" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#ff9f2e"/>
+    </linearGradient>
+
+    <filter id="sparkGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Braces -->
+  <g filter="url(#drop)">
+    <text
+      x="82"
+      y="312"
+      text-anchor="middle"
+      fill="url(#braceMain)"
+      font-family="SF Mono, Menlo, Monaco, Consolas, Liberation Mono, monospace"
+      font-size="208"
+      font-weight="600"
+    >{</text>
+    <text
+      x="430"
+      y="312"
+      text-anchor="middle"
+      fill="url(#braceMain)"
+      font-family="SF Mono, Menlo, Monaco, Consolas, Liberation Mono, monospace"
+      font-size="208"
+      font-weight="600"
+    >}</text>
+  </g>
+
+  <!-- Centered cross-peen hammer -->
+  <g filter="url(#drop)" transform="translate(256 256) scale(0.68) rotate(-32) translate(-256 -256)">
+    <g transform="translate(14 -10)">
+    <g transform="translate(12 0)">
+    <!-- Handle -->
+    <path
+      fill="url(#wood)"
+      d="
+        M 240 276
+        C 237 312, 234 378, 232 444
+        C 230 510, 232 565, 240 594
+        C 247 603, 254 604, 256 604
+        C 258 604, 265 603, 272 594
+        C 280 565, 282 510, 280 444
+        C 278 378, 275 312, 272 276
+        C 270 256, 266 256, 256 256
+        C 246 256, 242 256, 240 276
+        Z
+      "
+    />
+    <path
+      fill="url(#woodSheen)"
+      d="
+        M 240 276
+        C 237 312, 234 378, 232 444
+        C 230 510, 232 565, 240 594
+        C 247 603, 254 604, 256 604
+        C 258 604, 265 603, 272 594
+        C 280 565, 282 510, 280 444
+        C 278 378, 275 312, 272 276
+        C 270 256, 266 256, 256 256
+        C 246 256, 242 256, 240 276
+        Z
+      "
+    />
+    <g opacity="0.34" stroke="#3a2818" stroke-width="2.5" stroke-linecap="round">
+      <path d="M 244 318 C 252 316, 260 316, 268 318"/>
+      <path d="M 243 364 C 252 362, 260 362, 269 364"/>
+      <path d="M 242 410 C 252 408, 260 408, 270 410"/>
+      <path d="M 242 456 C 252 454, 260 454, 270 456"/>
+      <path d="M 242 502 C 252 500, 260 500, 270 502"/>
+      <path d="M 242 548 C 252 546, 260 546, 270 548"/>
+      <path d="M 243 582 C 252 580, 260 580, 269 582"/>
+    </g>
+
+    <!-- Ferrule -->
+    <path
+      fill="#8a8a96"
+      d="
+        M 228 248
+        H 284
+        C 292 248, 298 254, 298 262
+        V 274
+        C 298 282, 292 288, 284 288
+        H 228
+        C 220 288, 214 282, 214 274
+        V 262
+        C 214 254, 220 248, 228 248
+        Z
+      "
+    />
+    <rect x="230" y="250" width="52" height="6" rx="3" fill="#ffffff" fill-opacity="0.28"/>
+    </g>
+
+    <!-- Head body -->
+    <path
+      fill="url(#steelFront)"
+      d="
+        M 146 124
+        H 360
+        C 376 124, 388 136, 388 152
+        V 252
+        C 388 268, 376 280, 360 280
+        H 146
+        C 130 280, 118 268, 118 252
+        V 152
+        C 118 136, 130 124, 146 124
+        Z
+      "
+    />
+
+    <!-- Striking face -->
+    <path
+      fill="url(#steelTop)"
+      d="
+        M 146 124
+        H 360
+        C 376 124, 388 136, 388 152
+        V 168
+        C 388 168, 376 156, 360 156
+        H 146
+        C 130 156, 118 168, 118 168
+        V 152
+        C 118 136, 130 124, 146 124
+        Z
+      "
+    />
+
+    <!-- Cross peen -->
+    <path
+      fill="url(#steelPeen)"
+      d="
+        M 360 148
+        H 438
+        C 456 148, 468 162, 464 182
+        L 446 228
+        C 436 246, 414 254, 394 246
+        L 360 232
+        V 148
+        Z
+      "
+    />
+
+    <!-- Edge highlights -->
+    <path stroke="#ffffff" stroke-opacity="0.52" stroke-width="3.5" stroke-linecap="round" d="M 150 130 H 352"/>
+    <path stroke="#ffffff" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round" d="M 368 156 H 432"/>
+    <path stroke="#000000" stroke-opacity="0.24" stroke-width="3" stroke-linecap="round" d="M 124 272 H 360"/>
+
+    <!-- Sparks at hammer extremes -->
+    <!-- Top -->
+    <g filter="url(#sparkGlow)">
+      <circle cx="114" cy="128" r="7" fill="#fff4c8" opacity="0.88"/>
+      <circle cx="114" cy="128" r="3" fill="#ffffff" opacity="1"/>
+
+      <path stroke="url(#sparkWarm)" stroke-width="4.2" stroke-linecap="round" d="M 114 128 L 92 106"/>
+      <path stroke="#fff1b8" stroke-width="3.6" stroke-linecap="round" d="M 114 128 L 100 114"/>
+      <path stroke="#ffc857" stroke-width="3.8" stroke-linecap="round" d="M 114 128 L 128 108"/>
+      <path stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" d="M 114 128 L 104 112"/>
+      <path stroke="#49cc90" stroke-width="3" stroke-linecap="round" d="M 114 128 L 120 116"/>
+
+      <path stroke="#ffe08a" stroke-width="2.8" stroke-linecap="round" d="M 100 114 L 88 104"/>
+      <path stroke="#ffd978" stroke-width="2.6" stroke-linecap="round" d="M 100 114 L 96 102"/>
+      <path stroke="#fff1b8" stroke-width="2.8" stroke-linecap="round" d="M 104 112 L 92 100"/>
+      <path stroke="#ffae2f" stroke-width="2.6" stroke-linecap="round" d="M 120 116 L 130 106"/>
+      <path stroke="#49cc90" stroke-width="2.4" stroke-linecap="round" d="M 120 116 L 118 104"/>
+      <path stroke="#ffc857" stroke-width="2.6" stroke-linecap="round" d="M 104 112 L 90 102"/>
+
+      <path fill="#fff7d6" d="M 84 98 L 86.8 103.6 L 92.4 106.2 L 86.8 108.8 L 84 114.4 L 81.2 108.8 L 75.6 106.2 L 81.2 103.6 Z"/>
+      <path fill="#ffffff" d="M 132 100 L 134.2 104.8 L 138.6 107.2 L 134.2 109.6 L 132 114.4 L 129.8 109.6 L 125.4 107.2 L 129.8 104.8 Z"/>
+    </g>
+
+    <!-- Bottom -->
+    <g filter="url(#sparkGlow)">
+      <circle cx="116" cy="272" r="8" fill="#fff4c8" opacity="0.92"/>
+      <circle cx="116" cy="272" r="3.4" fill="#ffffff" opacity="1"/>
+
+      <path stroke="url(#sparkWarm)" stroke-width="4.8" stroke-linecap="round" d="M 116 272 L 88 300"/>
+      <path stroke="#fff1b8" stroke-width="4.2" stroke-linecap="round" d="M 116 272 L 96 290"/>
+      <path stroke="#ffc857" stroke-width="4.4" stroke-linecap="round" d="M 116 272 L 134 294"/>
+      <path stroke="#ffffff" stroke-width="3.8" stroke-linecap="round" d="M 116 272 L 102 286"/>
+      <path stroke="#49cc90" stroke-width="3.4" stroke-linecap="round" d="M 116 272 L 108 282"/>
+      <path stroke="#ffae2f" stroke-width="3.6" stroke-linecap="round" d="M 116 272 L 124 290"/>
+
+      <path stroke="#ffe08a" stroke-width="3.2" stroke-linecap="round" d="M 96 290 L 82 304"/>
+      <path stroke="#ffd978" stroke-width="2.8" stroke-linecap="round" d="M 96 290 L 92 278"/>
+      <path stroke="#fff1b8" stroke-width="3" stroke-linecap="round" d="M 102 286 L 90 296"/>
+      <path stroke="#ffc857" stroke-width="2.8" stroke-linecap="round" d="M 102 286 L 108 298"/>
+      <path stroke="#49cc90" stroke-width="2.6" stroke-linecap="round" d="M 108 282 L 98 290"/>
+      <path stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" d="M 124 290 L 136 300"/>
+      <path stroke="#ffbf5a" stroke-width="2.6" stroke-linecap="round" d="M 124 290 L 118 302"/>
+      <path stroke="#ffe89a" stroke-width="2.8" stroke-linecap="round" d="M 134 294 L 144 306"/>
+      <path stroke="#ffd978" stroke-width="2.4" stroke-linecap="round" d="M 134 294 L 138 284"/>
+
+      <path fill="#ffd978" d="M 76 306 L 78.8 311.6 L 84.4 314.2 L 78.8 316.8 L 76 322.4 L 73.2 316.8 L 67.6 314.2 L 73.2 311.6 Z"/>
+      <path fill="#ffffff" d="M 138 298 L 140.4 303.4 L 145.8 306.2 L 140.4 309 L 138 314.4 L 135.6 309 L 130.2 306.2 L 135.6 303.4 Z"/>
+      <path fill="#fff7d6" d="M 146 308 L 148.1 312.4 L 152.3 314.8 L 148.1 317.2 L 146 321.6 L 143.9 317.2 L 139.7 314.8 L 143.9 312.4 Z"/>
+    </g>
+    </g>
+  </g>
+</svg>

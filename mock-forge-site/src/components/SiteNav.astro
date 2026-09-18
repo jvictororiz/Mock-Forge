@@ -1,0 +1,96 @@
+---
+import type { Messages } from '../i18n/messages';
+import { GITHUB_URL } from '../lib/constants';
+
+type Props = {
+  t: Messages;
+};
+
+const { t } = Astro.props;
+---
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/icon.png" alt="" width="28" height="28" />
+      <span>MockForge</span>
+    </a>
+    <nav class="links" aria-label="Principal">
+      <a href="/#product">{t.nav.product}</a>
+      <a href="/#screenshots">{t.nav.screenshots}</a>
+      <a href="/#features">{t.nav.features}</a>
+      <a href="/#how">{t.nav.how}</a>
+      <a href="/#download">{t.nav.download}</a>
+      <a href={GITHUB_URL} target="_blank" rel="noreferrer">{t.nav.github}</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(14px);
+    background: rgba(26, 26, 31, 0.78);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 56px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    font-stretch: normal;
+    letter-spacing: -0.01em;
+    color: var(--accent);
+  }
+
+  .brand img {
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+
+  .links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .links a {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .links a:hover {
+    color: var(--text);
+  }
+
+  @media (max-width: 720px) {
+    .nav-inner {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-block: 0.7rem;
+      min-height: 0;
+    }
+
+    .links {
+      gap: 0.75rem;
+      justify-content: flex-start;
+    }
+  }
+</style>

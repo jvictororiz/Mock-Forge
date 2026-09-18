@@ -1,0 +1,3 @@
+# MockServer JAR placeholder
+# The JAR is downloaded automatically via: npm run download-mockserver
+# Or manually place mockserver-netty-5.15.0-jar-with-dependencies.jar here

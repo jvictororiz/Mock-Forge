@@ -1,0 +1,2 @@
+export const DEFAULT_PORT = 1080;
+export const TRAFFIC_BODY_CAPTURE_LIMIT = 2 * 1024 * 1024;

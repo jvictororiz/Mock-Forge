@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mirror decode runner</title>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script src="./h264-decoder.js"></script>
+    <script>
+      async function run() {
+        const response = await fetch('./scrcpy-sample.h264');
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        const canvas = document.getElementById('canvas');
+        let rendered = false;
+        const renderer = new MirrorDecoder.H264WebCodecsRenderer(canvas, () => {
+          rendered = true;
+        });
+
+        for (let offset = 0; offset < bytes.length; offset += 16384) {
+          renderer.feed(bytes.subarray(offset, offset + 16384));
+        }
+
+        await renderer.flush();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        const nonBlack = [...pixels].some((value, index) => index % 4 !== 3 && value > 8);
+        window.result = {
+          pass: nonBlack && rendered,
+          rendered,
+          supported: renderer.supported,
+          hasVideoDecoder: typeof VideoDecoder !== 'undefined',
+          width: canvas.width,
+          height: canvas.height,
+          error: renderer.lastError,
+          debug: renderer.debugState,
+        };
+      }
+
+      run().catch((error) => {
+        window.result = { pass: false, error: error.message };
+      });
+    </script>
+  </body>
+</html>

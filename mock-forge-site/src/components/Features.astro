@@ -1,0 +1,69 @@
+---
+import type { Messages } from '../i18n/messages';
+
+type Props = { t: Messages };
+const { t } = Astro.props;
+---
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>{t.features.title}</h2>
+      <p>{t.features.sub}</p>
+    </div>
+    <ul class="grid">
+      {
+        t.features.items.map((item, index) => (
+          <li class="item reveal" style={`transition-delay: ${Math.min(index * 45, 220)}ms`}>
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.15rem 1.35rem;
+  }
+
+  .item {
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+  }
+
+  h3 {
+    margin: 0 0 0.4rem;
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 700;
+    font-stretch: normal;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 560px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

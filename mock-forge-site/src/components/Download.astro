@@ -1,0 +1,244 @@
+---
+import type { Messages } from '../i18n/messages';
+import {
+  BREW_INSTALL,
+  MAC_ARM_DMG_URL,
+  RELEASES_URL,
+  WINDOWS_SETUP_URL,
+} from '../lib/constants';
+
+type Props = { t: Messages };
+const { t } = Astro.props;
+---
+
+<section class="section" id="download">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>{t.download.title}</h2>
+      <p>{t.download.sub}</p>
+    </div>
+
+    <div
+      class="panel reveal"
+      data-download-panel
+      data-recommended={t.download.recommended}
+      data-copied={t.download.copied}
+    >
+      <p class="status" data-download-status>{t.download.detecting}</p>
+
+      <div class="actions">
+        <a
+          class="btn btn-ghost download-btn"
+          data-platform="windows"
+          href={WINDOWS_SETUP_URL}
+          download
+        >
+          {t.download.windows}
+        </a>
+        <a class="btn btn-ghost download-btn" data-platform="mac" href={MAC_ARM_DMG_URL} download>
+          {t.download.mac}
+        </a>
+        <button type="button" class="btn btn-accent-soft" data-copy-brew data-brew={BREW_INSTALL}>
+          {t.download.brew}
+        </button>
+      </div>
+
+      <p class="hint brew-line">
+        <span>{t.download.brewHint}</span>
+        <code data-brew-cmd>{BREW_INSTALL}</code>
+      </p>
+      <p class="hint warn">{t.download.gatekeeper}</p>
+      <a class="all" href={RELEASES_URL} target="_blank" rel="noreferrer">{t.download.allReleases}</a>
+    </div>
+  </div>
+</section>
+
+<script>
+  const API = 'https://api.github.com/repos/jvictororiz/Mock-Forge/releases';
+  const panel = document.querySelector('[data-download-panel]');
+  const status = document.querySelector('[data-download-status]');
+  const recommendedLabel = panel?.getAttribute('data-recommended') ?? 'Recomendado';
+  const copiedLabel = panel?.getAttribute('data-copied') ?? 'Copiado';
+
+  function detectPlatform() {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('windows')) return 'windows';
+    if (ua.includes('mac')) return 'mac';
+    return 'other';
+  }
+
+  function detectMacArch() {
+    const ua = navigator.userAgent.toLowerCase();
+    // Intel Mac browsers often report "Intel"; Apple Silicon may say "arm" or omit it.
+    if (ua.includes('intel')) return 'x64';
+    return 'arm64';
+  }
+
+  /** Prefer setup.exe / .dmg assets from the release. */
+  function pickAsset(assets, platform) {
+    if (!Array.isArray(assets) || assets.length === 0) return null;
+    if (platform === 'windows') {
+      return (
+        assets.find((a) => /MockForge-.*-win-x64-setup\.exe$/i.test(a.name)) ||
+        assets.find((a) => /win-x64-setup\.exe$/i.test(a.name)) ||
+        assets.find((a) => /win-.*-setup\.exe$/i.test(a.name)) ||
+        assets.find((a) => /\.exe$/i.test(a.name) && /setup/i.test(a.name))
+      );
+    }
+    const preferArch = detectMacArch();
+    const arm =
+      assets.find((a) => /mac-arm64\.dmg$/i.test(a.name)) ||
+      assets.find((a) => /mac-.*arm.*\.dmg$/i.test(a.name));
+    const intel =
+      assets.find((a) => /mac-x64\.dmg$/i.test(a.name)) ||
+      assets.find((a) => /mac-.*x64.*\.dmg$/i.test(a.name));
+    const anyDmg = assets.find((a) => /mac-.*\.dmg$/i.test(a.name));
+    if (preferArch === 'x64') return intel || arm || anyDmg;
+    return arm || intel || anyDmg;
+  }
+
+  function latestDownloadUrl(assetName) {
+    return `https://github.com/jvictororiz/Mock-Forge/releases/latest/download/${assetName}`;
+  }
+
+  async function fetchLatestAssets() {
+    const headers = { Accept: 'application/vnd.github+json' };
+    const latest = await fetch(`${API}/latest`, { headers });
+    if (latest.ok) {
+      const release = await latest.json();
+      return release.assets ?? [];
+    }
+    const list = await fetch(`${API}?per_page=10`, { headers });
+    if (!list.ok) throw new Error(`HTTP ${list.status}`);
+    const releases = await list.json();
+    for (const release of releases) {
+      if (release.assets?.length) return release.assets;
+    }
+    return [];
+  }
+
+  async function hydrateDownloads() {
+    const platform = detectPlatform();
+    const buttons = document.querySelectorAll('.download-btn');
+
+    try {
+      const assets = await fetchLatestAssets();
+
+      buttons.forEach((btn) => {
+        const key = btn.dataset.platform;
+        const asset = pickAsset(assets, key);
+        if (asset?.browser_download_url) {
+          btn.href = asset.browser_download_url;
+        } else if (asset?.name) {
+          btn.href = latestDownloadUrl(asset.name);
+        }
+        // Keep the static latest/download href from SSR if API has no matching asset yet.
+        btn.setAttribute('download', '');
+        if (key === platform) {
+          btn.classList.remove('btn-ghost');
+          btn.classList.add('btn-primary');
+        }
+      });
+
+      if (status) {
+        if (platform === 'other') {
+          status.hidden = true;
+        } else {
+          status.textContent = recommendedLabel;
+        }
+      }
+    } catch {
+      if (status) status.hidden = true;
+    }
+  }
+
+  const brewBtn = document.querySelector('[data-copy-brew]');
+  brewBtn?.addEventListener('click', async () => {
+    const value = brewBtn.getAttribute('data-brew') ?? '';
+    try {
+      await navigator.clipboard.writeText(value);
+      const original = brewBtn.textContent;
+      brewBtn.textContent = copiedLabel;
+      setTimeout(() => {
+        brewBtn.textContent = original;
+      }, 1200);
+    } catch {
+      window.prompt('Homebrew', value);
+    }
+  });
+
+  void hydrateDownloads();
+</script>
+
+<style>
+  .panel {
+    padding: 1.35rem 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: calc(var(--radius) + 2px);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  }
+
+  .status {
+    margin: 0 0 0.85rem;
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .status:empty {
+    display: none;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .hint {
+    margin: 0 0 0.65rem;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+
+  .brew-line {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  code {
+    display: block;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    overflow-x: auto;
+    color: var(--text);
+  }
+
+  .warn {
+    color: var(--warn);
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    background: var(--danger-soft);
+  }
+
+  .all {
+    display: inline-block;
+    margin-top: 0.35rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.88rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .all:hover {
+    color: var(--text);
+  }
+</style>

@@ -1,0 +1,78 @@
+---
+import type { Messages } from '../i18n/messages';
+
+type Props = { t: Messages };
+const { t } = Astro.props;
+---
+
+<section class="section product" id="product">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>{t.product.title}</h2>
+      <p>{t.product.sub}</p>
+    </div>
+
+    <ul class="points">
+      {
+        t.product.points.map((point, index) => (
+          <li class="point reveal" style={`transition-delay: ${index * 60}ms`}>
+            <span class="num">{String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <h3>{point.title}</h3>
+              <p>{point.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .product {
+    padding-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.15rem;
+  }
+
+  .point {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .num {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  .point h3 {
+    margin: 0 0 0.35rem;
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  .point p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 800px) {
+    .points {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

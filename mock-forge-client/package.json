@@ -1,0 +1,124 @@
+{
+  "name": "mockforge",
+  "version": "0.7.5",
+  "description": "Visual mock server manager for MockServer — offline, open source, no account required",
+  "main": "dist-electron/main.js",
+  "author": "MockForge Contributors",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "npm run build:mcp && tsc -p tsconfig.electron.json && node scripts/copy-proxy.js && vite build",
+    "build:mcp": "npm install --prefix mcp && node scripts/build-mcp.js",
+    "clean:packaging": "node scripts/clean-packaging-artifacts.js",
+    "build:mac": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --mac",
+    "build:win": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --win",
+    "build:all": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --mac --win",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "download-mockserver": "node scripts/download-mockserver.js",
+    "download-scrcpy-server": "node scripts/download-scrcpy-server.js",
+    "download-jre": "node scripts/download-jre.js",
+    "prepare-jre-for-build": "node scripts/prepare-jre-for-build.js",
+    "postinstall": "node scripts/download-mockserver.js && node scripts/download-scrcpy-server.js && node scripts/patch-electron-plist.js"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@monaco-editor/react": "^4.6.0",
+    "@tanstack/react-virtual": "^3.14.10",
+    "monaco-editor": "^0.56.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uuid": "^10.0.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^32.1.0",
+    "electron-builder": "^25.0.5",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vite-plugin-electron": "^0.28.7",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^2.0.5"
+  },
+  "build": {
+    "appId": "com.mockforge.app",
+    "productName": "MockForge",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "resources/icon.icns",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "signIgnore": [
+        "Contents/Resources/jre"
+      ],
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "MockForge captures API requests from devices on your local network.",
+        "NSBonjourServices": [
+          "_mockforge._tcp"
+        ]
+      },
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.inherit.plist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-${version}-win-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}"
+    },
+    "files": [
+      "dist/index.html",
+      "dist/favicon.png",
+      "dist/icon.png",
+      "dist/assets/**/*",
+      "dist-electron/**/*",
+      "resources/icon.icns",
+      "resources/icon.png",
+      "resources/icon.svg",
+      "resources/icon-1024.png"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/mockserver",
+        "to": "mockserver"
+      },
+      {
+        "from": "resources/scrcpy",
+        "to": "scrcpy",
+        "filter": [
+          "scrcpy-server"
+        ]
+      },
+      {
+        "from": "resources/jre/current",
+        "to": "jre"
+      },
+      {
+        "from": "mcp/dist",
+        "to": "mockforge-mcp"
+      }
+    ]
+  }
+}

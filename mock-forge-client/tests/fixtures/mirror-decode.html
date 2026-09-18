@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mirror decode test</title>
+    <style>
+      body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
+      canvas { display: block; max-width: 100%; background: #000; }
+      #status { padding: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="status">Loading…</div>
+    <canvas id="canvas" width="480" height="960"></canvas>
+    <script type="module">
+      import {
+        H264WebCodecsRenderer,
+        splitAnnexB,
+      } from '../../src/utils/h264WebCodecsDecoder.ts';
+
+      const status = document.getElementById('status');
+      const canvas = document.getElementById('canvas');
+
+      async function run() {
+        if (typeof VideoDecoder === 'undefined') {
+          status.textContent = 'VideoDecoder unavailable';
+          return;
+        }
+
+        const response = await fetch('./scrcpy-sample.h264');
+        const buffer = new Uint8Array(await response.arrayBuffer());
+        const renderer = new H264WebCodecsRenderer(canvas, () => {
+          status.textContent = `Decoded ${canvas.width}x${canvas.height}`;
+          window.__mirrorDecodeDone = true;
+        });
+
+        const chunkSize = 16 * 1024;
+        for (let offset = 0; offset < buffer.length; offset += chunkSize) {
+          renderer.feed(buffer.subarray(offset, offset + chunkSize));
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const ctx = canvas.getContext('2d');
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const nonBlack = pixels.some((value, index) => index % 4 !== 3 && value > 8);
+        status.textContent = nonBlack
+          ? `PASS decoded ${canvas.width}x${canvas.height}`
+          : `FAIL black canvas (${renderer.lastError ?? 'no frame'})`;
+        window.__mirrorDecodePass = nonBlack;
+      }
+
+      run().catch((error) => {
+        status.textContent = `ERROR ${error.message}`;
+        window.__mirrorDecodePass = false;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mockforge": {
+      "command": "node",
+      "args": ["mcp/dist/index.js"],
+      "env": {
+        "MOCKFORGE_DATA_DIR": "~/.mockforge"
+      }
+    }
+  }
+}

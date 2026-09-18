@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: mock-forge-client
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mock-forge-client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download MockServer JAR
+        run: npm run download-mockserver
+
+      - name: Typecheck renderer
+        run: npx tsc --noEmit
+
+      - name: Typecheck electron
+        run: npx tsc -p tsconfig.electron.json --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build app bundle
+        run: npm run build
+
+  site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mock-forge-site
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mock-forge-site/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build

@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteNav from '../components/SiteNav.astro';
+import Hero from '../components/Hero.astro';
+import Product from '../components/Product.astro';
+import Screenshots from '../components/Screenshots.astro';
+import Features from '../components/Features.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import Download from '../components/Download.astro';
+import OpenSource from '../components/OpenSource.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { messages as t } from '../i18n/messages';
+---
+
+<BaseLayout title={t.meta.title} description={t.meta.description} canonicalPath="/">
+  <SiteNav t={t} />
+  <main>
+    <Hero t={t} downloadHref="#download" />
+    <Product t={t} />
+    <Screenshots t={t} />
+    <Features t={t} />
+    <HowItWorks t={t} />
+    <Download t={t} />
+    <OpenSource t={t} />
+  </main>
+  <SiteFooter t={t} />
+</BaseLayout>

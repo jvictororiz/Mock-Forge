@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-electron/
+dist-vite-tmp/
+mcp/dist/
+mcp/node_modules/
+release/
+*.dmg
+*.zip
+.DS_Store
+.env
+.env.*
+!.env.example
+resources/mockserver/*.jar
+resources/jre/
+.icon-venv/

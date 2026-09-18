@@ -1,0 +1,13 @@
+node_modules/
+mock-forge-client/node_modules/
+mock-forge-site/node_modules/
+mock-forge-client/dist/
+mock-forge-client/dist-electron/
+mock-forge-client/dist-vite-tmp/
+mock-forge-site/dist/
+mock-forge-site/.astro/
+.DS_Store
+.env
+.env.*
+!.env.example
+.icon-venv/

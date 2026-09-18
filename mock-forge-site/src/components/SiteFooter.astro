@@ -1,0 +1,46 @@
+---
+import type { Messages } from '../i18n/messages';
+import { GITHUB_URL } from '../lib/constants';
+
+type Props = { t: Messages };
+const { t } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <span>{t.footer.rights} · {year}</span>
+    <div class="links">
+      <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
+      <a href={`${GITHUB_URL}/blob/main/mock-forge-client/LICENSE`} target="_blank" rel="noreferrer">
+        {t.footer.mit}
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--line);
+    padding: 1.25rem 0 1.75rem;
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.25rem;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.84rem;
+  }
+
+  .links {
+    display: flex;
+    gap: 0.9rem;
+  }
+
+  a:hover {
+    color: var(--text-muted);
+  }
+</style>
