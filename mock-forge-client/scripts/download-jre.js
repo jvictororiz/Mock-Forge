@@ -14,6 +14,7 @@ const { execFileSync } = require('child_process');
 const JRE_VERSION = 17;
 const DEST_ROOT = join(__dirname, '..', 'resources', 'jre');
 const MIN_JRE_SIZE = 20_000_000;
+const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
 function getPlatformKey() {
   if (process.platform === 'darwin') {
@@ -43,7 +44,7 @@ function getAdoptiumTarget() {
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
-    get(url, (response) => {
+    const request = get(url, (response) => {
       if ([301, 302, 307, 308].includes(response.statusCode ?? 0)) {
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
@@ -58,13 +59,36 @@ function downloadFile(url, dest) {
       }
 
       const file = createWriteStream(dest);
+      let settled = false;
+      const fail = (error) => {
+        if (settled) return;
+        settled = true;
+        request.destroy();
+        file.destroy();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      const timer = setTimeout(() => {
+        fail(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS}ms: ${url}`));
+      }, DOWNLOAD_TIMEOUT_MS);
+
       response.pipe(file);
       file.on('finish', () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         file.close();
         resolve();
       });
-      file.on('error', reject);
-    }).on('error', reject);
+      file.on('error', fail);
+      response.on('error', fail);
+    });
+
+    request.setTimeout(DOWNLOAD_TIMEOUT_MS, () => {
+      request.destroy();
+      reject(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS}ms: ${url}`));
+    });
+    request.on('error', reject);
   });
 }
 

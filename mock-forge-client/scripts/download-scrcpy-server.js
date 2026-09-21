@@ -8,10 +8,11 @@ const SERVER_URL = `https://github.com/Genymobile/scrcpy/releases/download/v${SC
 const DEST_DIR = join(__dirname, '..', 'resources', 'scrcpy');
 const DEST_PATH = join(DEST_DIR, 'scrcpy-server');
 const MIN_SIZE = 50_000;
+const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
-    get(url, (response) => {
+    const request = get(url, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
@@ -26,13 +27,36 @@ function downloadFile(url, dest) {
       }
 
       const file = createWriteStream(dest);
+      let settled = false;
+      const fail = (error) => {
+        if (settled) return;
+        settled = true;
+        request.destroy();
+        file.destroy();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      const timer = setTimeout(() => {
+        fail(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS}ms: ${url}`));
+      }, DOWNLOAD_TIMEOUT_MS);
+
       response.pipe(file);
       file.on('finish', () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         file.close();
         resolve();
       });
-      file.on('error', reject);
-    }).on('error', reject);
+      file.on('error', fail);
+      response.on('error', fail);
+    });
+
+    request.setTimeout(DOWNLOAD_TIMEOUT_MS, () => {
+      request.destroy();
+      reject(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS}ms: ${url}`));
+    });
+    request.on('error', reject);
   });
 }
 

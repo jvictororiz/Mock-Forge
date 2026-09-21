@@ -11,6 +11,7 @@
     "build:mcp": "npm install --prefix mcp && node scripts/build-mcp.js",
     "clean:packaging": "node scripts/clean-packaging-artifacts.js",
     "build:mac": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --mac",
+    "build:mac:ci": "electron-builder --mac dmg zip --arm64",
     "build:win": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --win",
     "build:all": "npm run clean:packaging && npm run build && npm run download-scrcpy-server && npm run download-jre && npm run prepare-jre-for-build && electron-builder --mac --win",
     "preview": "vite preview",
@@ -58,6 +59,9 @@
       "category": "public.app-category.developer-tools",
       "icon": "resources/icon.icns",
       "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
       "target": [
         "dmg",
         "zip"
