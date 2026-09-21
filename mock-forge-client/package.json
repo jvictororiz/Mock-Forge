@@ -58,7 +58,7 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "resources/icon.icns",
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "artifactName": "${productName}-mac-${arch}.${ext}",
       "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
@@ -87,10 +87,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "${productName}-${version}-win-${arch}-setup.${ext}"
+      "artifactName": "${productName}-win-${arch}-setup.${ext}"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}"
+      "artifactName": "${productName}-win-${arch}-portable.${ext}"
     },
     "files": [
       "dist/index.html",

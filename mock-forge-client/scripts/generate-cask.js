@@ -61,7 +61,7 @@ function renderCask({ version, owner, repo, hashes }) {
   sha256 arm: "${arm}",
          intel: "${intel}"
 
-  url "${homepage}/releases/download/v#{version}/MockForge-#{version}-mac-#{arch}.dmg"
+  url "${homepage}/releases/download/v#{version}/MockForge-mac-#{arch}.dmg"
   name "MockForge"
   desc "Visual mock server manager for MockServer"
   homepage "${homepage}"
@@ -85,7 +85,7 @@ end
   version "${version}"
   sha256 "${arm}"
 
-  url "${homepage}/releases/download/v#{version}/MockForge-#{version}-mac-arm64.dmg"
+  url "${homepage}/releases/download/v#{version}/MockForge-mac-arm64.dmg"
   name "MockForge"
   desc "Visual mock server manager for MockServer"
   homepage "${homepage}"

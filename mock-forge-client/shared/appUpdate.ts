@@ -67,11 +67,21 @@ export function compareVersions(left: string, right: string): number {
   return 0;
 }
 
-export function windowsSetupAssetName(version: string, arch: string): string {
+/** Stable release asset names (no version) — used with /releases/latest/download/. */
+export function windowsSetupAssetName(arch: string): string {
+  return `${APP_PRODUCT_NAME}-win-${normalizeArch(arch)}-setup.exe`;
+}
+
+export function macDmgAssetName(arch: string): string {
+  return `${APP_PRODUCT_NAME}-mac-${normalizeArch(arch)}.dmg`;
+}
+
+/** Older releases embedded the semver in the filename. */
+export function windowsSetupAssetNameLegacy(version: string, arch: string): string {
   return `${APP_PRODUCT_NAME}-${stripVersionPrefix(version)}-win-${normalizeArch(arch)}-setup.exe`;
 }
 
-export function macDmgAssetName(version: string, arch: string): string {
+export function macDmgAssetNameLegacy(version: string, arch: string): string {
   return `${APP_PRODUCT_NAME}-${stripVersionPrefix(version)}-mac-${normalizeArch(arch)}.dmg`;
 }
 
@@ -81,6 +91,28 @@ export function findAsset(
 ): GithubReleaseAsset | null {
   const expected = fileName.toLowerCase();
   return assets.find((asset) => asset.name.toLowerCase() === expected) ?? null;
+}
+
+export function findWindowsSetupAsset(
+  assets: GithubReleaseAsset[],
+  version: string,
+  arch: string,
+): GithubReleaseAsset | null {
+  return (
+    findAsset(assets, windowsSetupAssetName(arch))
+    ?? findAsset(assets, windowsSetupAssetNameLegacy(version, arch))
+  );
+}
+
+export function findMacDmgAsset(
+  assets: GithubReleaseAsset[],
+  version: string,
+  arch: string,
+): GithubReleaseAsset | null {
+  return (
+    findAsset(assets, macDmgAssetName(arch))
+    ?? findAsset(assets, macDmgAssetNameLegacy(version, arch))
+  );
 }
 
 export function findCaskAsset(assets: GithubReleaseAsset[]): GithubReleaseAsset | null {
@@ -123,7 +155,7 @@ export function resolveUpdatePlan(input: UpdatePlanInput): AppUpdateCheckResult 
   const available = { ...base, available: true };
 
   if (input.platform === 'win32') {
-    const asset = findAsset(input.release.assets, windowsSetupAssetName(latestVersion, input.arch));
+    const asset = findWindowsSetupAsset(input.release.assets, latestVersion, input.arch);
     if (!asset) {
       return available;
     }
@@ -136,7 +168,7 @@ export function resolveUpdatePlan(input: UpdatePlanInput): AppUpdateCheckResult 
   }
 
   if (input.platform === 'darwin') {
-    const asset = findAsset(input.release.assets, macDmgAssetName(latestVersion, input.arch));
+    const asset = findMacDmgAsset(input.release.assets, latestVersion, input.arch);
     if (input.brewCaskInstalled) {
       return {
         ...available,

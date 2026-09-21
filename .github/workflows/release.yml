@@ -59,8 +59,8 @@ jobs:
         with:
           name: windows
           path: |
-            mock-forge-client/dist/MockForge-*-win-*-setup.exe
-            mock-forge-client/dist/MockForge-*-win-*-portable.exe
+            mock-forge-client/dist/MockForge-win-*-setup.exe
+            mock-forge-client/dist/MockForge-win-*-portable.exe
 
   build-macos:
     needs: version
@@ -112,8 +112,8 @@ jobs:
         with:
           name: macos
           path: |
-            mock-forge-client/dist/MockForge-*-mac-*.dmg
-            mock-forge-client/dist/MockForge-*-mac-*.zip
+            mock-forge-client/dist/MockForge-mac-*.dmg
+            mock-forge-client/dist/MockForge-mac-*.zip
 
   publish:
     needs: [version, build-windows, build-macos]
@@ -132,7 +132,7 @@ jobs:
       - name: Generate Homebrew cask
         run: |
           shopt -s nullglob
-          DMGS=(artifacts/MockForge-*-mac-*.dmg)
+          DMGS=(artifacts/MockForge-mac-*.dmg)
           if [ ${#DMGS[@]} -eq 0 ]; then
             echo "No macOS DMG artifacts found"
             exit 1
@@ -153,10 +153,10 @@ jobs:
           name: MockForge ${{ needs.version.outputs.version }}
           generate_release_notes: true
           files: |
-            artifacts/MockForge-*-win-*-setup.exe
-            artifacts/MockForge-*-win-*-portable.exe
-            artifacts/MockForge-*-mac-*.dmg
-            artifacts/MockForge-*-mac-*.zip
+            artifacts/MockForge-win-*-setup.exe
+            artifacts/MockForge-win-*-portable.exe
+            artifacts/MockForge-mac-*.dmg
+            artifacts/MockForge-mac-*.zip
             artifacts/mockforge.rb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

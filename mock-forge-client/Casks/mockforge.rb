@@ -2,7 +2,7 @@ cask "mockforge" do
   version "0.7.4"
   sha256 :no_check
 
-  url "https://github.com/jvictororiz/Mock-Forge/releases/download/v#{version}/MockForge-#{version}-mac-arm64.dmg"
+  url "https://github.com/jvictororiz/Mock-Forge/releases/download/v#{version}/MockForge-mac-arm64.dmg"
   name "MockForge"
   desc "Visual mock server manager for MockServer"
   homepage "https://github.com/jvictororiz/Mock-Forge"

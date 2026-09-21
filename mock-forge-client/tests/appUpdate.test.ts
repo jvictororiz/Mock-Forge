@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   compareVersions,
   macDmgAssetName,
+  macDmgAssetNameLegacy,
   resolveUpdatePlan,
   windowsSetupAssetName,
+  windowsSetupAssetNameLegacy,
   type GithubRelease,
 } from '../shared/appUpdate';
 
@@ -26,12 +28,28 @@ describe('compareVersions', () => {
 });
 
 describe('resolveUpdatePlan', () => {
-  it('picks the Windows NSIS installer when a newer release exists', () => {
+  it('picks the stable Windows NSIS installer when a newer release exists', () => {
     const plan = resolveUpdatePlan({
       currentVersion: '0.7.4',
       release: release('v0.8.0', [
-        windowsSetupAssetName('0.8.0', 'x64'),
+        windowsSetupAssetName('x64'),
         'mockforge.rb',
+      ]),
+      platform: 'win32',
+      arch: 'x64',
+      brewCaskInstalled: false,
+    });
+
+    expect(plan.available).toBe(true);
+    expect(plan.method).toBe('windows-setup');
+    expect(plan.assetName).toBe('MockForge-win-x64-setup.exe');
+  });
+
+  it('falls back to legacy versioned Windows asset names', () => {
+    const plan = resolveUpdatePlan({
+      currentVersion: '0.7.4',
+      release: release('v0.8.0', [
+        windowsSetupAssetNameLegacy('0.8.0', 'x64'),
       ]),
       platform: 'win32',
       arch: 'x64',
@@ -47,7 +65,7 @@ describe('resolveUpdatePlan', () => {
     const plan = resolveUpdatePlan({
       currentVersion: '0.7.4',
       release: release('v0.8.0', [
-        macDmgAssetName('0.8.0', 'arm64'),
+        macDmgAssetName('arm64'),
         'mockforge.rb',
       ]),
       platform: 'darwin',
@@ -63,7 +81,7 @@ describe('resolveUpdatePlan', () => {
   it('falls back to the DMG when Homebrew did not install the app', () => {
     const plan = resolveUpdatePlan({
       currentVersion: '0.7.4',
-      release: release('v0.8.0', [macDmgAssetName('0.8.0', 'arm64')]),
+      release: release('v0.8.0', [macDmgAssetName('arm64')]),
       platform: 'darwin',
       arch: 'arm64',
       brewCaskInstalled: false,
@@ -73,10 +91,24 @@ describe('resolveUpdatePlan', () => {
     expect(plan.method).toBe('mac-dmg');
   });
 
+  it('falls back to legacy versioned macOS DMG names', () => {
+    const plan = resolveUpdatePlan({
+      currentVersion: '0.7.4',
+      release: release('v0.8.0', [macDmgAssetNameLegacy('0.8.0', 'arm64')]),
+      platform: 'darwin',
+      arch: 'arm64',
+      brewCaskInstalled: false,
+    });
+
+    expect(plan.available).toBe(true);
+    expect(plan.method).toBe('mac-dmg');
+    expect(plan.assetName).toBe('MockForge-0.8.0-mac-arm64.dmg');
+  });
+
   it('marks the app as up to date when the latest tag matches', () => {
     const plan = resolveUpdatePlan({
       currentVersion: '0.8.0',
-      release: release('v0.8.0', [windowsSetupAssetName('0.8.0', 'x64')]),
+      release: release('v0.8.0', [windowsSetupAssetName('x64')]),
       platform: 'win32',
       arch: 'x64',
       brewCaskInstalled: false,
