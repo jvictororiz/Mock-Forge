@@ -1,5 +1,6 @@
 name: Release
 
+# Desktop app only. Triggered by version tags — not by marketing site changes.
 on:
   push:
     tags:

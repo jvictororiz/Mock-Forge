@@ -1,6 +1,8 @@
-# MockForge site
+# Mock Forge site
 
 Static marketing site built with [Astro](https://astro.build/), deployed on Cloudflare Pages.
+
+Site deploys are **independent** from app releases: changing the site does **not** create a `v*.*.*` tag or a GitHub Release.
 
 ## Local development
 
@@ -14,28 +16,32 @@ npm run build
 npm run preview
 ```
 
-## Cloudflare Pages
+## Deploy
 
-In the Cloudflare dashboard → Workers & Pages → Create → Connect to Git:
+### Automatic (GitHub Actions)
 
-| Setting | Value |
-|---------|-------|
-| Repository | `jvictororiz/Mock-Forge` |
-| Root directory | `mock-forge-site` |
-| Framework preset | Astro (or None) |
-| Build command | `npm ci && npm run build` |
-| Build output directory | `dist` |
+Workflow [`.github/workflows/site.yml`](../.github/workflows/site.yml):
 
-After the first deploy, attach your custom domain under **Custom domains**.
+- Runs on pushes to `main` that touch `mock-forge-site/**`
+- Builds Astro and deploys to the Pages project `mock-forge-site`
+- Requires repository secret `CLOUDFLARE_API_TOKEN` (Permissions: Account → Cloudflare Pages → Edit)
 
-Optional local Pages preview (requires Wrangler installed globally or as a one-off):
+Manual run: Actions → **Site** → **Run workflow**.
+
+### Local
 
 ```bash
 npm run build
-npx wrangler@3 pages dev dist
+npx wrangler@3 pages deploy dist --project-name mock-forge-site
 ```
 
-`wrangler.jsonc` sets `pages_build_output_dir` to `dist` for CLI deploys.
+`wrangler.jsonc` sets `pages_build_output_dir` to `dist`.
+
+Custom domain: Cloudflare dashboard → Workers & Pages → `mock-forge-site` → Custom domains (e.g. `mock-forge.dev`).
+
+## App releases (separate)
+
+Desktop installers are published only by [`.github/workflows/release.yml`](../.github/workflows/release.yml) when you push a tag like `v0.7.8` (version must match `mock-forge-client/package.json`).
 
 ## Idioma
 
@@ -43,4 +49,4 @@ O site é apenas em português (`/`).
 
 ## Downloads
 
-A seção de download busca os assets da última GitHub Release em runtime e define o `href` direto do instalador Windows (`.exe`) e do DMG macOS. Destaca a plataforma do visitante.
+A seção de download oferece Windows e macOS. No Mac: Apple Silicon, Intel e comando Homebrew. Os links usam `/releases/latest/download/` com nomes estáveis de asset.

@@ -1,9 +1,15 @@
-name: CI
+name: App CI
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'mock-forge-client/**'
+      - '.github/workflows/ci.yml'
   pull_request:
+    paths:
+      - 'mock-forge-client/**'
+      - '.github/workflows/ci.yml'
 
 defaults:
   run:
@@ -37,24 +43,4 @@ jobs:
         run: npm test
 
       - name: Build app bundle
-        run: npm run build
-
-  site:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mock-forge-site
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: mock-forge-site/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build site
         run: npm run build
