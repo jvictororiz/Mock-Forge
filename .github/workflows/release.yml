@@ -64,9 +64,18 @@ jobs:
 
   build-macos:
     needs: version
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          # Intel runner so the bundled JRE matches the package arch.
+          - os: macos-13
+            arch: x64
+    runs-on: ${{ matrix.os }}
     # Fail fast: a healthy Mac build should finish well under 15 minutes locally.
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +91,7 @@ jobs:
           path: |
             ~/Library/Caches/electron
             ~/Library/Caches/electron-builder
-          key: electron-mac-${{ hashFiles('mock-forge-client/package-lock.json') }}
+          key: electron-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('mock-forge-client/package-lock.json') }}
 
       - name: Install dependencies
         run: npm ci
@@ -102,15 +111,15 @@ jobs:
       - name: Prepare JRE for packaging
         run: npm run prepare-jre-for-build
 
-      - name: Package macOS (electron-builder)
-        run: npm run build:mac:ci
+      - name: Package macOS ${{ matrix.arch }} (electron-builder)
+        run: npm run build:mac:ci -- --${{ matrix.arch }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           DEBUG: electron-builder
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
+          name: macos-${{ matrix.arch }}
           path: |
             mock-forge-client/dist/MockForge-mac-*.dmg
             mock-forge-client/dist/MockForge-mac-*.zip
