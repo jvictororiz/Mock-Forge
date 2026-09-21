@@ -35,7 +35,7 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.65;
   background:
     radial-gradient(900px 480px at 85% -8%, rgba(73, 204, 144, 0.11), transparent 55%),
     linear-gradient(180deg, #16161b 0%, var(--bg) 38%, #141418 100%);
@@ -87,19 +87,24 @@ button,
 }
 
 .section-head h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.55rem;
+  padding-block: 0.18em 0.28em;
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.6vw, 1.8rem);
   font-weight: 700;
   font-stretch: normal;
   letter-spacing: -0.015em;
-  line-height: 1.25;
+  /* Syne: descendentes (g, y, p, q) precisam de folga no box. */
+  line-height: 1.55;
+  overflow: visible;
 }
 
 .section-head p {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.98rem;
+  line-height: 1.7;
+  overflow: visible;
 }
 
 .btn {
@@ -107,11 +112,13 @@ button,
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.7rem 1.15rem;
+  padding: 0.9rem 1.25rem 1rem;
   border-radius: var(--radius);
   font-weight: 600;
   font-size: 0.9rem;
   letter-spacing: 0;
+  line-height: 1.5;
+  overflow: visible;
   transition: transform 0.25s var(--ease), background 0.25s var(--ease), color 0.25s var(--ease),
     border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
@@ -149,6 +156,36 @@ button,
 
 .btn-accent-soft:hover {
   background: rgba(73, 204, 144, 0.22);
+}
+
+/* Brand wordmark: “Mock Forge” */
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.15;
+  overflow: visible;
+}
+
+.brand-lockup__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  line-height: 1.2;
+  overflow: visible;
+}
+
+.brand-lockup--hero .brand-lockup__name {
+  font-size: clamp(1.85rem, 4.2vw, 2.55rem);
+}
+
+.brand-lockup--nav .brand-lockup__name {
+  font-size: 1rem;
+}
+
+.brand-lockup--footer .brand-lockup__name {
+  font-size: 0.92rem;
+  color: var(--text-muted);
 }
 
 .reveal {

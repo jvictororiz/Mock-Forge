@@ -3,7 +3,7 @@ import type { Messages } from '../i18n/messages';
 import {
   BREW_INSTALL,
   MAC_ARM_DMG_URL,
-  RELEASES_URL,
+  MAC_X64_DMG_URL,
   WINDOWS_SETUP_URL,
 } from '../lib/constants';
 
@@ -22,33 +22,62 @@ const { t } = Astro.props;
       class="panel reveal"
       data-download-panel
       data-recommended={t.download.recommended}
+      data-unavailable={t.download.unavailable}
       data-copied={t.download.copied}
+      data-choose-mac={t.download.chooseMac}
     >
       <p class="status" data-download-status>{t.download.detecting}</p>
 
-      <div class="actions">
+      <div class="actions" data-os-actions>
         <a
           class="btn btn-ghost download-btn"
-          data-platform="windows"
+          data-os="windows"
+          data-download="windows"
           href={WINDOWS_SETUP_URL}
           download
         >
           {t.download.windows}
         </a>
-        <a class="btn btn-ghost download-btn" data-platform="mac" href={MAC_ARM_DMG_URL} download>
+        <button type="button" class="btn btn-ghost" data-os="mac" data-select-mac>
           {t.download.mac}
-        </a>
-        <button type="button" class="btn btn-accent-soft" data-copy-brew data-brew={BREW_INSTALL}>
-          {t.download.brew}
         </button>
       </div>
 
-      <p class="hint brew-line">
-        <span>{t.download.brewHint}</span>
-        <code data-brew-cmd>{BREW_INSTALL}</code>
-      </p>
-      <p class="hint warn">{t.download.gatekeeper}</p>
-      <a class="all" href={RELEASES_URL} target="_blank" rel="noreferrer">{t.download.allReleases}</a>
+      <div class="mac-options" data-mac-options hidden>
+        <p class="mac-label">{t.download.macOptionsLabel}</p>
+        <div class="actions mac-actions">
+          <a
+            class="btn btn-ghost download-btn"
+            data-download="mac-arm64"
+            href={MAC_ARM_DMG_URL}
+            download
+          >
+            {t.download.macAppleSilicon}
+          </a>
+          <a
+            class="btn btn-ghost download-btn"
+            data-download="mac-x64"
+            href={MAC_X64_DMG_URL}
+            download
+          >
+            {t.download.macIntel}
+          </a>
+          <button
+            type="button"
+            class="btn btn-accent-soft"
+            data-copy-brew
+            data-brew={BREW_INSTALL}
+          >
+            {t.download.brew}
+          </button>
+        </div>
+        <div class="brew-block">
+          <p class="hint">{t.download.brewHint}</p>
+          <code data-brew-cmd>{BREW_INSTALL}</code>
+          <p class="hint muted">{t.download.brewUpgradeHint}</p>
+          <p class="hint muted">{t.download.gatekeeper}</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -57,8 +86,14 @@ const { t } = Astro.props;
   const API = 'https://api.github.com/repos/jvictororiz/Mock-Forge/releases';
   const panel = document.querySelector('[data-download-panel]');
   const status = document.querySelector('[data-download-status]');
-  const recommendedLabel = panel?.getAttribute('data-recommended') ?? 'Recomendado';
+  const macOptions = document.querySelector('[data-mac-options]');
+  const selectMacBtn = document.querySelector('[data-select-mac]');
+  const recommendedLabel = panel?.getAttribute('data-recommended') ?? 'Sugerido para este dispositivo';
+  const unavailableLabel =
+    panel?.getAttribute('data-unavailable') ??
+    'A release ainda está sendo gerada. Os downloads ficam disponíveis assim que o build terminar.';
   const copiedLabel = panel?.getAttribute('data-copied') ?? 'Copiado';
+  const chooseMacLabel = panel?.getAttribute('data-choose-mac') ?? 'Escolha a opção para o seu Mac';
 
   function detectPlatform() {
     const ua = navigator.userAgent.toLowerCase();
@@ -69,36 +104,60 @@ const { t } = Astro.props;
 
   function detectMacArch() {
     const ua = navigator.userAgent.toLowerCase();
-    // Intel Mac browsers often report "Intel"; Apple Silicon may say "arm" or omit it.
     if (ua.includes('intel')) return 'x64';
     return 'arm64';
   }
 
-  /** Prefer setup.exe / .dmg assets from the release. */
-  function pickAsset(assets, platform) {
-    if (!Array.isArray(assets) || assets.length === 0) return null;
-    if (platform === 'windows') {
-      return (
-        assets.find((a) => /MockForge-.*-win-x64-setup\.exe$/i.test(a.name)) ||
-        assets.find((a) => /win-x64-setup\.exe$/i.test(a.name)) ||
-        assets.find((a) => /win-.*-setup\.exe$/i.test(a.name)) ||
-        assets.find((a) => /\.exe$/i.test(a.name) && /setup/i.test(a.name))
-      );
-    }
-    const preferArch = detectMacArch();
-    const arm =
-      assets.find((a) => /mac-arm64\.dmg$/i.test(a.name)) ||
-      assets.find((a) => /mac-.*arm.*\.dmg$/i.test(a.name));
-    const intel =
-      assets.find((a) => /mac-x64\.dmg$/i.test(a.name)) ||
-      assets.find((a) => /mac-.*x64.*\.dmg$/i.test(a.name));
-    const anyDmg = assets.find((a) => /mac-.*\.dmg$/i.test(a.name));
-    if (preferArch === 'x64') return intel || arm || anyDmg;
-    return arm || intel || anyDmg;
-  }
-
   function latestDownloadUrl(assetName) {
     return `https://github.com/jvictororiz/Mock-Forge/releases/latest/download/${assetName}`;
+  }
+
+  function findAsset(assets, patterns) {
+    if (!Array.isArray(assets)) return null;
+    for (const pattern of patterns) {
+      const match = assets.find((a) => pattern.test(a.name));
+      if (match) return match;
+    }
+    return null;
+  }
+
+  function applyAsset(btn, asset, fallbackUrl) {
+    if (asset?.browser_download_url || asset?.name) {
+      btn.href = asset.browser_download_url || latestDownloadUrl(asset.name);
+      btn.setAttribute('download', '');
+      btn.removeAttribute('aria-disabled');
+      btn.classList.remove('is-disabled');
+      return true;
+    }
+    if (fallbackUrl) {
+      btn.href = fallbackUrl;
+      btn.setAttribute('download', '');
+      btn.removeAttribute('aria-disabled');
+      btn.classList.remove('is-disabled');
+      return true;
+    }
+    btn.removeAttribute('href');
+    btn.removeAttribute('download');
+    btn.setAttribute('aria-disabled', 'true');
+    btn.classList.add('is-disabled');
+    return false;
+  }
+
+  function highlight(el, on) {
+    if (!el) return;
+    if (on) {
+      el.classList.remove('btn-ghost');
+      el.classList.add('btn-primary');
+    } else {
+      el.classList.add('btn-ghost');
+      el.classList.remove('btn-primary');
+    }
+  }
+
+  function showMacOptions(open) {
+    if (!macOptions) return;
+    macOptions.hidden = !open;
+    selectMacBtn?.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
   async function fetchLatestAssets() {
@@ -108,6 +167,7 @@ const { t } = Astro.props;
       const release = await latest.json();
       return release.assets ?? [];
     }
+    if (latest.status === 404) return [];
     const list = await fetch(`${API}?per_page=10`, { headers });
     if (!list.ok) throw new Error(`HTTP ${list.status}`);
     const releases = await list.json();
@@ -119,38 +179,81 @@ const { t } = Astro.props;
 
   async function hydrateDownloads() {
     const platform = detectPlatform();
-    const buttons = document.querySelectorAll('.download-btn');
+    const macArch = detectMacArch();
+    const windowsBtn = document.querySelector('[data-download="windows"]');
+    const armBtn = document.querySelector('[data-download="mac-arm64"]');
+    const intelBtn = document.querySelector('[data-download="mac-x64"]');
 
+    let assets = [];
     try {
-      const assets = await fetchLatestAssets();
-
-      buttons.forEach((btn) => {
-        const key = btn.dataset.platform;
-        const asset = pickAsset(assets, key);
-        if (asset?.browser_download_url) {
-          btn.href = asset.browser_download_url;
-        } else if (asset?.name) {
-          btn.href = latestDownloadUrl(asset.name);
-        }
-        // Keep the static latest/download href from SSR if API has no matching asset yet.
-        btn.setAttribute('download', '');
-        if (key === platform) {
-          btn.classList.remove('btn-ghost');
-          btn.classList.add('btn-primary');
-        }
-      });
-
-      if (status) {
-        if (platform === 'other') {
-          status.hidden = true;
-        } else {
-          status.textContent = recommendedLabel;
-        }
-      }
+      assets = await fetchLatestAssets();
     } catch {
-      if (status) status.hidden = true;
+      assets = [];
     }
+
+    const windowsAsset = findAsset(assets, [
+      /MockForge-win-x64-setup\.exe$/i,
+      /win-x64-setup\.exe$/i,
+      /win-.*-setup\.exe$/i,
+    ]);
+    const armAsset = findAsset(assets, [/mac-arm64\.dmg$/i, /mac-.*arm.*\.dmg$/i]);
+    const intelAsset = findAsset(assets, [/mac-x64\.dmg$/i, /mac-.*x64.*\.dmg$/i]);
+
+    const winReady = applyAsset(windowsBtn, windowsAsset, windowsBtn?.getAttribute('href'));
+    const armReady = applyAsset(armBtn, armAsset, armBtn?.getAttribute('href'));
+    const intelReady = applyAsset(intelBtn, intelAsset, intelBtn?.getAttribute('href'));
+
+    if (!winReady && !armReady && !intelReady) {
+      if (status) {
+        status.hidden = false;
+        status.textContent = unavailableLabel;
+        status.classList.add('is-waiting');
+      }
+      return;
+    }
+
+    highlight(windowsBtn, false);
+    highlight(selectMacBtn, false);
+    highlight(armBtn, false);
+    highlight(intelBtn, false);
+
+    if (platform === 'windows') {
+      showMacOptions(false);
+      highlight(windowsBtn, true);
+      if (status) {
+        status.hidden = false;
+        status.textContent = recommendedLabel;
+        status.classList.remove('is-waiting');
+      }
+      return;
+    }
+
+    if (platform === 'mac') {
+      showMacOptions(true);
+      highlight(selectMacBtn, true);
+      highlight(macArch === 'x64' ? intelBtn : armBtn, true);
+      if (status) {
+        status.hidden = false;
+        status.textContent = recommendedLabel;
+        status.classList.remove('is-waiting');
+      }
+      return;
+    }
+
+    showMacOptions(false);
+    if (status) status.hidden = true;
   }
+
+  selectMacBtn?.addEventListener('click', () => {
+    showMacOptions(true);
+    highlight(selectMacBtn, true);
+    highlight(document.querySelector('[data-download="windows"]'), false);
+    if (status) {
+      status.hidden = false;
+      status.textContent = chooseMacLabel;
+      status.classList.remove('is-waiting');
+    }
+  });
 
   const brewBtn = document.querySelector('[data-copy-brew]');
   brewBtn?.addEventListener('click', async () => {
@@ -187,58 +290,78 @@ const { t } = Astro.props;
     text-transform: uppercase;
   }
 
-  .status:empty {
+  .status.is-waiting {
+    color: var(--warn);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .status:empty,
+  .status[hidden] {
     display: none;
+  }
+
+  .download-btn.is-disabled,
+  .download-btn[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.65rem;
-    margin-bottom: 1rem;
   }
 
-  .hint {
-    margin: 0 0 0.65rem;
+  .mac-options {
+    margin-top: 1.1rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .mac-options[hidden] {
+    display: none;
+  }
+
+  .mac-label {
+    margin: 0 0 0.75rem;
     color: var(--text-muted);
     font-size: 0.88rem;
   }
 
-  .brew-line {
+  .mac-actions {
+    margin-bottom: 1rem;
+  }
+
+  .brew-block {
     display: grid;
-    gap: 0.4rem;
+    gap: 0.45rem;
+  }
+
+  .hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+
+  .hint.muted {
+    font-size: 0.82rem;
+    line-height: 1.5;
   }
 
   code {
     display: block;
-    padding: 0.65rem 0.8rem;
+    padding: 0.7rem 0.85rem;
     border-radius: 8px;
     background: var(--bg-soft);
     border: 1px solid var(--line);
     font-family: var(--font-mono);
     font-size: 0.75rem;
     overflow-x: auto;
-    color: var(--text);
-  }
-
-  .warn {
-    color: var(--warn);
-    padding: 0.65rem 0.8rem;
-    border-radius: 8px;
-    background: var(--danger-soft);
-  }
-
-  .all {
-    display: inline-block;
-    margin-top: 0.35rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 0.88rem;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-
-  .all:hover {
     color: var(--text);
   }
 </style>

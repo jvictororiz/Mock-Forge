@@ -43,8 +43,4 @@ O site é apenas em português (`/`).
 
 ## Downloads
 
-A seção de download busca os assets da última GitHub Release em runtime e define o `href` direto do instalador Windows (`.exe`) e do DMG macOS. Destaca a plataforma do visitante. Homebrew:
-
-```bash
-brew install --cask https://github.com/jvictororiz/Mock-Forge/releases/latest/download/mockforge.rb
-```
+A seção de download busca os assets da última GitHub Release em runtime e define o `href` direto do instalador Windows (`.exe`) e do DMG macOS. Destaca a plataforma do visitante.

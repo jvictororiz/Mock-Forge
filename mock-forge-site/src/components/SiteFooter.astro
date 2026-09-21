@@ -1,6 +1,6 @@
 ---
 import type { Messages } from '../i18n/messages';
-import { GITHUB_URL } from '../lib/constants';
+import BrandLockup from './BrandLockup.astro';
 
 type Props = { t: Messages };
 const { t } = Astro.props;
@@ -9,13 +9,11 @@ const year = new Date().getFullYear();
 
 <footer class="footer">
   <div class="container footer-inner">
-    <span>{t.footer.rights} · {year}</span>
-    <div class="links">
-      <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
-      <a href={`${GITHUB_URL}/blob/main/mock-forge-client/LICENSE`} target="_blank" rel="noreferrer">
-        {t.footer.mit}
-      </a>
+    <div class="footer-brand">
+      <BrandLockup name={t.brand.name} size="footer" />
+      <span class="footer-year">· {year}</span>
     </div>
+    <span>{t.footer.mit}</span>
   </div>
 </footer>
 
@@ -35,12 +33,14 @@ const year = new Date().getFullYear();
     font-size: 0.84rem;
   }
 
-  .links {
-    display: flex;
-    gap: 0.9rem;
+  .footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
   }
 
-  a:hover {
-    color: var(--text-muted);
+  .footer-year {
+    align-self: center;
+    color: var(--text-dim);
   }
 </style>

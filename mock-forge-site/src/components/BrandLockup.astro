@@ -1,0 +1,12 @@
+---
+type Props = {
+  name: string;
+  size?: 'hero' | 'nav' | 'footer';
+};
+
+const { name, size = 'nav' } = Astro.props;
+---
+
+<span class:list={['brand-lockup', `brand-lockup--${size}`]}>
+  <span class="brand-lockup__name">{name}</span>
+</span>

@@ -3,16 +3,17 @@ export type Messages = {
     title: string;
     description: string;
   };
+  brand: {
+    name: string;
+  };
   nav: {
     product: string;
     features: string;
     how: string;
     screenshots: string;
     download: string;
-    github: string;
   };
   hero: {
-    brand: string;
     headline: string;
     sub: string;
     ctaPrimary: string;
@@ -44,21 +45,24 @@ export type Messages = {
     sub: string;
     windows: string;
     mac: string;
+    macOptionsLabel: string;
+    macAppleSilicon: string;
+    macIntel: string;
     brew: string;
     brewHint: string;
+    brewUpgradeHint: string;
     gatekeeper: string;
-    allReleases: string;
+    chooseMac: string;
     detecting: string;
     recommended: string;
+    unavailable: string;
     copied: string;
   };
   openSource: {
     title: string;
     body: string;
-    cta: string;
   };
   footer: {
-    rights: string;
     mit: string;
   };
 };
@@ -66,9 +70,12 @@ export type Messages = {
 /** Conteúdo do site — apenas português. */
 export const messages: Messages = {
   meta: {
-    title: 'MockForge — Mock server visual para APIs e apps mobile',
+    title: 'Mock Forge — Mock server visual para APIs e apps mobile',
     description:
       'Simule APIs no seu computador: intercepte o tráfego, configure regras de request e respostas completas. Offline, open source e sem cadastro.',
+  },
+  brand: {
+    name: 'Mock Forge',
   },
   nav: {
     product: 'Visão geral',
@@ -76,10 +83,8 @@ export const messages: Messages = {
     how: 'Como funciona',
     screenshots: 'Interface',
     download: 'Download',
-    github: 'GitHub',
   },
   hero: {
-    brand: 'MockForge',
     headline: 'Simule APIs com controle total do tráfego.',
     sub: 'Um mock server visual para desenvolvimento. Intercepte chamadas HTTP, combine regras de request com respostas personalizadas e teste seu app mobile ou cliente sem depender do backend.',
     ctaPrimary: 'Baixar agora',
@@ -165,7 +170,7 @@ export const messages: Messages = {
     steps: [
       {
         title: 'Instale',
-        body: 'Baixe o instalador para Windows ou macOS. No Apple Silicon, também há opção via Homebrew.',
+        body: 'Baixe o instalador para Windows ou macOS. No Mac, o Homebrew também permite instalar e atualizar com um comando.',
       },
       {
         title: 'Inicie o servidor',
@@ -179,25 +184,30 @@ export const messages: Messages = {
   },
   download: {
     title: 'Download',
-    sub: 'Instaladores para Windows e macOS. Atualizações pelo próprio app usam a mesma fonte.',
+    sub: 'Escolha Windows ou macOS. No Mac, você pode baixar o DMG do seu chip ou instalar pelo Homebrew.',
     windows: 'Windows',
     mac: 'macOS',
+    macOptionsLabel: 'Opções para macOS',
+    macAppleSilicon: 'Apple Silicon',
+    macIntel: 'Intel',
     brew: 'Copiar comando Homebrew',
-    brewHint: 'Disponível para Apple Silicon:',
+    brewHint: 'Instalação via Homebrew (Apple Silicon e Intel):',
+    brewUpgradeHint:
+      'Depois de instalar pelo Homebrew, as atualizações podem ser feitas com brew upgrade — ou pelo botão Atualizar dentro do app.',
     gatekeeper:
-      'No macOS, se o sistema bloquear a abertura, use Abrir com o botão direito ou permita em Privacidade e Segurança. O app ainda não é notarizado pela Apple.',
-    allReleases: 'Todas as versões no GitHub',
+      'Se o macOS bloquear a abertura do app, use Abrir com o botão direito ou permita em Privacidade e Segurança. O app ainda não é notarizado pela Apple.',
+    chooseMac: 'Escolha a opção para o seu Mac',
     detecting: 'Identificando seu sistema…',
     recommended: 'Sugerido para este dispositivo',
+    unavailable:
+      'A release ainda está sendo gerada. Os downloads ficam disponíveis assim que o build terminar.',
     copied: 'Copiado',
   },
   openSource: {
     title: 'Código aberto',
-    body: 'MockForge é MIT: use, contribua e adapte. Sem conta, sem telemetria obrigatória e com controle total na sua máquina.',
-    cta: 'Repositório no GitHub',
+    body: 'MockForge é open source sob licença MIT: use e adapte. Sem conta, sem telemetria obrigatória e com controle total na sua máquina.',
   },
   footer: {
-    rights: 'MockForge',
     mit: 'Licença MIT',
   },
 };

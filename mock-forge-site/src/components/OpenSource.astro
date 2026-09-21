@@ -1,6 +1,5 @@
 ---
 import type { Messages } from '../i18n/messages';
-import { GITHUB_URL } from '../lib/constants';
 
 type Props = { t: Messages };
 const { t } = Astro.props;
@@ -10,7 +9,6 @@ const { t } = Astro.props;
   <div class="container reveal">
     <h2>{t.openSource.title}</h2>
     <p>{t.openSource.body}</p>
-    <a class="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{t.openSource.cta}</a>
   </div>
 </section>
 
@@ -25,14 +23,18 @@ const { t } = Astro.props;
 
   h2 {
     margin: 0 0 0.55rem;
+    padding-block: 0.18em 0.28em;
     font-family: var(--font-display);
     font-size: clamp(1.35rem, 2.5vw, 1.7rem);
     letter-spacing: -0.03em;
+    line-height: 1.55;
+    overflow: visible;
   }
 
   p {
-    margin: 0 0 1rem;
+    margin: 0;
     color: var(--text-muted);
     font-size: 0.95rem;
+    line-height: 1.7;
   }
 </style>

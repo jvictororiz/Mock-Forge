@@ -1,5 +1,6 @@
 ---
 import type { Messages } from '../i18n/messages';
+import BrandLockup from './BrandLockup.astro';
 
 type Props = {
   t: Messages;
@@ -13,7 +14,7 @@ const { t, downloadHref } = Astro.props;
   <div class="container hero-inner">
     <div class="brand-row reveal">
       <img class="brand-icon" src="/icon.png" alt="" width="48" height="48" />
-      <p class="brand">{t.hero.brand}</p>
+      <BrandLockup name={t.brand.name} size="hero" />
     </div>
     <h1 class="reveal" style="transition-delay: 80ms">{t.hero.headline}</h1>
     <p class="sub reveal" style="transition-delay: 140ms">{t.hero.sub}</p>
@@ -29,13 +30,14 @@ const { t, downloadHref } = Astro.props;
   .hero {
     position: relative;
     padding: clamp(3.25rem, 8vw, 5.5rem) 0 clamp(2.5rem, 5vw, 3.5rem);
-    overflow: hidden;
+    overflow: visible;
   }
 
   .hero-inner {
     position: relative;
     z-index: 1;
     max-width: 38rem;
+    overflow: visible;
   }
 
   .brand-row {
@@ -43,6 +45,7 @@ const { t, downloadHref } = Astro.props;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1.15rem;
+    overflow: visible;
   }
 
   .brand-icon {
@@ -53,26 +56,17 @@ const { t, downloadHref } = Astro.props;
     flex-shrink: 0;
   }
 
-  .brand {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(1.85rem, 4.2vw, 2.55rem);
-    font-weight: 700;
-    font-stretch: normal;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--accent);
-  }
-
   h1 {
     margin: 0 0 0.85rem;
+    padding-block: 0.18em 0.25em;
     font-family: var(--font-display);
     font-size: clamp(1.2rem, 2.4vw, 1.55rem);
     font-weight: 600;
     font-stretch: normal;
     letter-spacing: -0.015em;
-    line-height: 1.35;
+    line-height: 1.55;
     max-width: 24ch;
+    overflow: visible;
     color: var(--text);
   }
 
@@ -82,7 +76,7 @@ const { t, downloadHref } = Astro.props;
     font-size: 1rem;
     font-weight: 500;
     letter-spacing: 0;
-    line-height: 1.6;
+    line-height: 1.7;
     max-width: 36rem;
   }
 
