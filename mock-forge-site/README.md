@@ -50,3 +50,6 @@ O site é apenas em português (`/`).
 ## Downloads
 
 A seção de download oferece Windows e macOS. No Mac: Apple Silicon, Intel e comando Homebrew. Os links usam `/releases/latest/download/` com nomes estáveis de asset.
+
+<!-- deploy-trigger: verify CLOUDFLARE_API_TOKEN -->
+
