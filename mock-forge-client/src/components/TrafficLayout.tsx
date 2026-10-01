@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -21,6 +21,7 @@ import { RequestDetail } from './RequestDetail';
 import { DeviceMirrorPanel } from './DeviceMirrorPanel';
 import { SortableTrafficPanel } from './SortableTrafficPanel';
 import { useI18n } from '../hooks/useI18n';
+import { useAppStore } from '../stores/appStore';
 import {
   clamp,
   markUserSizedPanel,
@@ -71,6 +72,7 @@ function getPanelWidthLimits(id: TrafficPanelId): { min: number; max: number } |
 
 export function TrafficLayout() {
   const { t } = useI18n();
+  const detailOpen = useAppStore((state) => state.selectedRequestId != null);
   const storedDetail = readUserSizedWidth(
     TRAFFIC_DETAIL_WIDTH_KEY,
     TRAFFIC_DETAIL_USER_SIZED_KEY,
@@ -98,7 +100,10 @@ export function TrafficLayout() {
     detail: null,
   });
 
-  const visibleOrder = getVisiblePanelOrder(panelOrder, mirrorOpen);
+  const visibleOrder = useMemo(
+    () => getVisiblePanelOrder(panelOrder, mirrorOpen, detailOpen),
+    [detailOpen, mirrorOpen, panelOrder],
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -191,7 +196,7 @@ export function TrafficLayout() {
       const index = resizingIndex.current;
       if (index === null) return;
 
-      const order = getVisiblePanelOrder(panelOrder, mirrorOpen);
+      const order = getVisiblePanelOrder(panelOrder, mirrorOpen, detailOpen);
       const leftId = order[index];
       const rightId = order[index + 1];
       if (!leftId || !rightId) return;
@@ -224,7 +229,7 @@ export function TrafficLayout() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [mirrorOpen, panelOrder, setPanelWidth]);
+  }, [detailOpen, mirrorOpen, panelOrder, setPanelWidth]);
 
   const startResize = (index: number, leftId: TrafficPanelId, rightId: TrafficPanelId) => {
     resizingIndex.current = index;
@@ -374,6 +379,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     overflow: 'hidden',
     minWidth: 0,
+    minHeight: 0,
+    height: '100%',
+    alignItems: 'stretch',
   },
   resizer: {
     width: `${RESIZER_WIDTH}px`,

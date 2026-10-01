@@ -47,6 +47,11 @@ export function writeStoredPanelOrder(order: TrafficPanelId[]): void {
 export function getVisiblePanelOrder(
   order: TrafficPanelId[],
   mirrorOpen: boolean,
+  detailOpen = true,
 ): TrafficPanelId[] {
-  return mirrorOpen ? order : order.filter((id) => id !== 'mirror');
+  return order.filter((id) => {
+    if (id === 'mirror') return mirrorOpen;
+    if (id === 'detail') return detailOpen;
+    return true;
+  });
 }

@@ -131,6 +131,7 @@ function sendFailedTrafficRecord(meta, reason, instabilityKind = 'connection_fai
     userAgent: meta.userAgent,
     durationMs: Date.now() - (meta.startedAt || Date.now()),
     recordType: 'request',
+    pending: false,
     connectionFailed: true,
     instabilityKind,
     instabilityMessage: reason,
@@ -309,6 +310,7 @@ function handleMockServerProxyResponse(proxyRes, clientRes, meta, monitor, relea
       mockedRequestBodyPaths: mockPaths.mockedRequestBodyPaths,
       mockedRequestHeaderFields: mockPaths.mockedRequestHeaderFields,
       forcedExecution: isForcedExecution(meta.requestHeaders),
+      pending: false,
       ...instabilityFields,
     });
 
@@ -559,12 +561,42 @@ function forward(clientReq, clientRes) {
   const clientIp = getClientIp(clientReq);
   const userAgent = requestHeaders['user-agent'] || requestHeaders['User-Agent'];
   const requestPath = url.split('?')[0] || '/';
+  const trafficMeta = {
+    requestId,
+    startedAt,
+    timestamp: new Date(startedAt).toISOString(),
+    method,
+    path: requestPath,
+    requestHeaders: {
+      ...requestHeaders,
+      'x-mockforge-request-id': requestId,
+    },
+    requestBody: '',
+    clientIp,
+    userAgent,
+  };
 
   if (process.send) {
     process.send({ type: 'request', count: requestCount });
   }
 
   const isControlPath = url.startsWith('/mockserver');
+  if (!isControlPath) {
+    sendTrafficRecord({
+      id: requestId,
+      timestamp: trafficMeta.timestamp,
+      method,
+      path: requestPath,
+      headers: trafficMeta.requestHeaders,
+      body: '',
+      clientIp,
+      userAgent,
+      pending: true,
+      durationMs: 0,
+      recordType: 'request',
+    });
+  }
+
   const shouldUseMockServer = isControlPath || shouldInterceptForMock(method, url, interceptRoutes);
   const canPassthrough = upstreamConfig?.host && upstreamConfig?.scheme;
 
@@ -593,10 +625,10 @@ function forward(clientReq, clientRes) {
 
       sendTrafficRecord({
         id: requestId,
-        timestamp: new Date().toISOString(),
+        timestamp: trafficMeta.timestamp,
         method,
         path: requestPath,
-        headers: requestHeaders,
+        headers: trafficMeta.requestHeaders,
         body: result.requestBody,
         clientIp,
         userAgent,
@@ -615,6 +647,7 @@ function forward(clientReq, clientRes) {
           ? (result.errorMessage || 'Upstream connection failed')
           : instabilityFields.instabilityMessage,
         clientInstability: instabilityFields.clientInstability,
+        pending: false,
       });
     }, monitor);
     return;

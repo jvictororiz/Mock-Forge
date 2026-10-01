@@ -473,7 +473,8 @@ const styles: Record<string, React.CSSProperties> = {
     accentColor: 'var(--accent)',
   },
   tableWrapper: {
-    flex: 1,
+    flex: '1 1 0',
+    minHeight: 0,
     overflow: 'auto',
   },
   table: {

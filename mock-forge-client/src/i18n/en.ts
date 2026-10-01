@@ -207,6 +207,7 @@ export const en: Translation = {
     resizePanels: 'Resize panels',
     instabilityStatus: 'instability',
     connectionFailedStatus: 'failed',
+    pendingStatus: 'pending',
     clientInstabilityStatus: 'unstable',
     instabilityGeneric: 'Connection instability',
     instabilityIndicatorTitle: 'Connection instability detected',
@@ -395,6 +396,7 @@ export const en: Translation = {
     noResponseYet: 'No response captured yet.',
     noResponseBody: 'No response body.',
     copyPath: 'Copy path',
+    closeDetail: 'Close detail',
   },
   devices: {
     intro:

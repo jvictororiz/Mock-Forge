@@ -29,6 +29,7 @@ export const RequestDetail = memo(function RequestDetail({
 }) {
   const { t } = useI18n();
   const selectedRequestId = useAppStore((state) => state.selectedRequestId);
+  const setSelectedRequestId = useAppStore((state) => state.setSelectedRequestId);
   const requestFromStore = useAppStore(
     (state) => (
       selectedRequestId
@@ -78,11 +79,25 @@ export const RequestDetail = memo(function RequestDetail({
     };
   }, [request]);
 
+  const closeDetailButton = (
+    <button
+      type="button"
+      style={styles.closeButton}
+      onClick={() => setSelectedRequestId(null)}
+      onPointerDown={(event) => event.stopPropagation()}
+      title={t.request.closeDetail}
+      aria-label={t.request.closeDetail}
+    >
+      ×
+    </button>
+  );
+
   if (!request || !formattedContent) {
     return (
       <div style={styles.container}>
         <DraggablePanelHeader style={styles.emptyHeader}>
           <span style={styles.emptyHeaderTitle}>{t.request.panelTitle}</span>
+          {closeDetailButton}
         </DraggablePanelHeader>
         <div style={styles.empty}>
           <p>{t.request.select}</p>
@@ -147,6 +162,7 @@ export const RequestDetail = memo(function RequestDetail({
           {!isInstability && (
             <CopyButton value={request.path} title={t.request.copyPath} />
           )}
+          {closeDetailButton}
         </div>
         <div style={styles.metaRow}>
           {request.forcedExecution && (
@@ -302,6 +318,7 @@ export const RequestDetail = memo(function RequestDetail({
 const styles: Record<string, React.CSSProperties> = {
   container: {
     flex: 1,
+    minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -418,6 +435,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   content: {
     flex: 1,
+    minHeight: 0,
     overflow: 'auto',
     padding: '12px 14px',
   },
@@ -440,5 +458,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius)',
     background: 'var(--bg-secondary)',
     border: '1px solid var(--border)',
+  },
+  closeButton: {
+    border: '1px solid var(--border)',
+    background: 'var(--bg-tertiary)',
+    color: 'var(--text-primary)',
+    width: '28px',
+    height: '28px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    flexShrink: 0,
+    lineHeight: 1,
+    fontSize: '18px',
   },
 };

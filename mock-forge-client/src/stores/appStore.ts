@@ -102,9 +102,22 @@ function mergeIncomingTrafficRecord(
   existing: CapturedRequest,
   incoming: CapturedRequest,
 ): CapturedRequest {
+  const incomingIsStalePending = incoming.pending === true
+    && incoming.responseStatus == null
+    && !incoming.connectionFailed
+    && (existing.responseStatus != null || !!existing.connectionFailed);
+  if (incomingIsStalePending) return existing;
+
+  const stillPending = incoming.pending === true
+    && incoming.responseStatus == null
+    && !incoming.connectionFailed;
+
+  const completed = incoming.responseStatus != null;
+
   return {
     ...incoming,
     id: existing.id,
+    pending: stillPending ? true : undefined,
     body: incoming.body || existing.body,
     headers: { ...existing.headers, ...incoming.headers },
     mockedRequest: !!(existing.mockedRequest || incoming.mockedRequest),
@@ -112,10 +125,16 @@ function mergeIncomingTrafficRecord(
     mockedRequestBodyPaths: incoming.mockedRequestBodyPaths ?? existing.mockedRequestBodyPaths,
     mockedRequestHeaderFields: incoming.mockedRequestHeaderFields ?? existing.mockedRequestHeaderFields,
     forcedExecution: !!(existing.forcedExecution || incoming.forcedExecution),
-    connectionFailed: !!(existing.connectionFailed || incoming.connectionFailed),
+    connectionFailed: completed
+      ? !!incoming.connectionFailed
+      : !!(existing.connectionFailed || incoming.connectionFailed),
     clientInstability: !!(existing.clientInstability || incoming.clientInstability),
-    instabilityKind: incoming.instabilityKind ?? existing.instabilityKind,
-    instabilityMessage: incoming.instabilityMessage ?? existing.instabilityMessage,
+    instabilityKind: completed
+      ? incoming.instabilityKind
+      : (incoming.instabilityKind ?? existing.instabilityKind),
+    instabilityMessage: completed
+      ? incoming.instabilityMessage
+      : (incoming.instabilityMessage ?? existing.instabilityMessage),
     recordType: incoming.recordType ?? existing.recordType,
     consumerId: incoming.consumerId ?? existing.consumerId,
     consumerLabel: incoming.consumerLabel ?? existing.consumerLabel,
@@ -142,6 +161,10 @@ function appendTrafficRecords(
     let existingIndex = traceId
       ? lookup.byTraceId.get(traceId) ?? lookup.byId.get(traceId)
       : undefined;
+
+    if (existingIndex === undefined) {
+      existingIndex = lookup.byId.get(req.id);
+    }
 
     if (existingIndex === undefined) {
       existingIndex = next.findIndex((record) => trafficRecordsMatch(record, req));

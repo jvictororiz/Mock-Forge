@@ -7,10 +7,14 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const { checking, applying, progress, result, check, apply } = useUpdateStore();
 
-  const handleCheck = () => {
+  const handleCheck = (announceUpToDate = false) => {
     void check().then((next) => {
       if (next?.error) {
         showToast(t.settings.updateFailed(next.error), 'error');
+        return;
+      }
+      if (announceUpToDate && next && !next.available) {
+        showToast(t.settings.upToDate, 'success');
       }
     });
   };
@@ -29,16 +33,31 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
   };
 
   if (compact) {
-    if (!result?.available) return null;
+    const available = !!result?.available;
+    const label = applying
+      ? (progress != null ? t.settings.downloadingUpdate(progress) : t.settings.updating)
+      : checking
+        ? t.settings.checkingUpdates
+        : t.settings.headerUpdate;
+
     return (
       <button
         type="button"
-        onClick={handleApply}
-        disabled={applying}
-        style={styles.headerBtn}
-        title={t.settings.updateAvailable(result.latestVersion || '')}
+        onClick={available ? handleApply : () => handleCheck(true)}
+        disabled={checking || applying}
+        style={{
+          ...styles.headerBtn,
+          ...(available ? styles.headerBtnReady : null),
+          opacity: checking || applying ? 0.85 : 1,
+        }}
+        title={
+          available
+            ? t.settings.updateAvailable(result?.latestVersion || '')
+            : t.settings.checkUpdates
+        }
       >
-        {applying ? t.settings.updating : t.settings.headerUpdate}
+        {available ? <span style={styles.headerDot} aria-hidden /> : null}
+        {label}
       </button>
     );
   }
@@ -79,7 +98,7 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           style={styles.secondaryBtn}
-          onClick={handleCheck}
+          onClick={() => handleCheck()}
           disabled={checking || applying}
         >
           {checking ? t.settings.checkingUpdates : t.settings.checkUpdates}
@@ -171,12 +190,30 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   headerBtn: {
-    padding: '6px 12px',
+    padding: '6px 16px',
+    minWidth: '108px',
     borderRadius: 'var(--radius)',
     fontSize: '12px',
-    fontWeight: 600,
-    color: '#fff',
-    background: 'var(--accent)',
+    fontWeight: 700,
+    color: '#1c1403',
+    background: '#f5c451',
+    border: '1px solid #e2a820',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+  },
+  headerBtnReady: {
+    background: '#ffb020',
+    border: '1px solid #d4890a',
+    boxShadow: '0 0 0 2px rgba(255, 176, 32, 0.45)',
+  },
+  headerDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#1c1403',
+    flexShrink: 0,
   },
   brewBox: {
     display: 'flex',

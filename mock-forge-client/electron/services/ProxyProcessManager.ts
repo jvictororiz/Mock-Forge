@@ -102,9 +102,32 @@ export class ProxyProcessManager {
   }
 
   private recordPassthroughTraffic(record: CapturedRequest): void {
-    this.passthroughTraffic.push(record);
-    if (this.passthroughTraffic.length > 50) {
-      this.passthroughTraffic = this.passthroughTraffic.slice(-50);
+    const index = this.passthroughTraffic.findIndex((item) => item.id === record.id);
+    if (index >= 0) {
+      const existing = this.passthroughTraffic[index];
+      const incomingIsStalePending = record.pending === true
+        && record.responseStatus == null
+        && !record.connectionFailed
+        && (existing.responseStatus != null || !!existing.connectionFailed);
+      if (!incomingIsStalePending) {
+        const next = this.passthroughTraffic.slice();
+        const stillPending = record.pending === true
+          && record.responseStatus == null
+          && !record.connectionFailed;
+        next[index] = {
+          ...existing,
+          ...record,
+          body: record.body || existing.body,
+          headers: { ...existing.headers, ...record.headers },
+          pending: stillPending ? true : undefined,
+        };
+        this.passthroughTraffic = next;
+      }
+    } else {
+      this.passthroughTraffic.push(record);
+      if (this.passthroughTraffic.length > 50) {
+        this.passthroughTraffic = this.passthroughTraffic.slice(-50);
+      }
     }
     this.onTrafficRecorded?.();
   }

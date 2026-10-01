@@ -472,6 +472,8 @@ export function TrafficView({ mirrorOpen = false, onToggleMirror }: TrafficViewP
 const styles: Record<string, React.CSSProperties> = {
   container: {
     flex: 1,
+    minHeight: 0,
+    height: '100%',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -637,7 +639,8 @@ const styles: Record<string, React.CSSProperties> = {
     accentColor: 'var(--accent)',
   },
   tableWrapper: {
-    flex: 1,
+    flex: '1 1 0',
+    minHeight: 0,
     overflow: 'auto',
   },
   table: {

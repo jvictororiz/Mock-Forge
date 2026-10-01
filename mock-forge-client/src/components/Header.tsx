@@ -111,7 +111,6 @@ export function Header() {
         </div>
 
         <div style={styles.right}>
-          <UpdateControls compact />
           <EnvironmentSelector compact />
           <ConsumerSelector compact />
 
@@ -125,6 +124,7 @@ export function Header() {
             )}
           </div>
 
+          <UpdateControls compact />
           <button
             onClick={handleToggleServer}
             style={{

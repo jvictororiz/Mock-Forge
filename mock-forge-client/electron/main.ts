@@ -19,7 +19,7 @@ import { scrcpyMirrorService, getMirrorStatus } from './services/scrcpyMirror';
 import { copyMediaFileToClipboard } from './utils/mirrorCaptureClipboard';
 import { DEFAULT_PORT } from '../shared/constants';
 import { prepareEnvironment, resolveUpstream } from '../shared/upstreamUtils';
-import { dedupeTrafficRecords, buildTrafficFingerprint } from '../shared/trafficDedup';
+import { dedupeTrafficRecords, buildTrafficFingerprint, presentTrafficRecords } from '../shared/trafficDedup';
 import { createInstabilityRecord, hasTrafficInstability } from '../shared/trafficInstability';
 import type { InstabilityKind } from '../shared/types';
 import type { InstabilityServerSnapshot } from '../shared/instabilityLogTypes';
@@ -302,11 +302,11 @@ async function getAllTrafficRecords(): Promise<CapturedRequest[]> {
   if (!isServerRunning()) return [...instabilityEvents];
   const mockServerTraffic = enrichTraffic(await getAdapter().getRecordedRequests());
   const passthroughTraffic = enrichTraffic(tcpProxy.getPassthroughTraffic());
-  return dedupeTrafficRecords([
+  return presentTrafficRecords(dedupeTrafficRecords([
     ...instabilityEvents,
     ...passthroughTraffic,
     ...mockServerTraffic,
-  ]).sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+  ])).sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 }
 
 function getPublicPort(): number {
@@ -550,9 +550,9 @@ async function publishTrafficUpdate(): Promise<void> {
       ...mockServerTraffic,
     ])
       .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-    const merged = allDeduped.slice(0, 50);
+    const merged = presentTrafficRecords(allDeduped).slice(0, 50);
 
-    appendNewRecordsToActiveSession(allDeduped);
+    appendNewRecordsToActiveSession(allDeduped.filter((record) => !record.pending));
 
     const fingerprint = buildTrafficFingerprint(merged);
     if (fingerprint === lastPublishedTrafficFingerprint) {
@@ -893,11 +893,11 @@ ipcMain.handle('traffic:get', async () => {
   if (!isServerRunning()) return [];
   const mockServerTraffic = enrichTraffic(await getAdapter().getRecordedRequests());
   const passthroughTraffic = enrichTraffic(tcpProxy.getPassthroughTraffic());
-  return dedupeTrafficRecords([
+  return presentTrafficRecords(dedupeTrafficRecords([
     ...instabilityEvents,
     ...passthroughTraffic,
     ...mockServerTraffic,
-  ])
+  ]))
     .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))
     .slice(0, 50);
 });

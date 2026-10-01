@@ -113,11 +113,17 @@ export default function App() {
       <Header />
       <main style={styles.main}>
         <ErrorBoundary>
-          {activeTab === 'traffic' ? (
+          <div
+            style={{
+              ...styles.tabPane,
+              display: activeTab === 'traffic' ? 'flex' : 'none',
+            }}
+          >
             <TrafficLayout />
-          ) : activeTab === 'settings' ? (
+          </div>
+          {activeTab === 'settings' ? (
             <SettingsView />
-          ) : (
+          ) : activeTab === 'traffic' ? null : (
             <Suspense fallback={<TabLoadingFallback />}>
               {activeTab === 'editor' ? (
                 <EditorLayout />
@@ -144,6 +150,15 @@ const styles: Record<string, React.CSSProperties> = {
   main: {
     flex: 1,
     display: 'flex',
+    overflow: 'hidden',
+    minHeight: 0,
+    minWidth: 0,
+  },
+  tabPane: {
+    flex: 1,
+    display: 'flex',
+    minWidth: 0,
+    minHeight: 0,
     overflow: 'hidden',
   },
 };

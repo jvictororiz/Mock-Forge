@@ -4,6 +4,8 @@ import {
   buildTrafficFingerprint,
   trafficSnapshotsEqual,
   capturedRequestSnapshotEqual,
+  presentTrafficRecords,
+  PENDING_TRAFFIC_TIMEOUT_MS,
 } from '../shared/trafficDedup';
 import type { CapturedRequest } from '../shared/types';
 
@@ -98,5 +100,61 @@ describe('buildTrafficFingerprint', () => {
     const completed = [makeRequest({ id: 'a', responseStatus: 200 })];
 
     expect(buildTrafficFingerprint(pending)).not.toBe(buildTrafficFingerprint(completed));
+  });
+});
+
+describe('presentTrafficRecords', () => {
+  it('keeps an in-flight request visible and refreshes its duration', () => {
+    const started = Date.parse('2026-01-01T00:00:00.000Z');
+    const [record] = presentTrafficRecords([
+      makeRequest({
+        id: 'pending-1',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        pending: true,
+        durationMs: 0,
+      }),
+    ], started + 1500);
+
+    expect(record.pending).toBe(true);
+    expect(record.durationMs).toBe(1500);
+    expect(record.connectionFailed).toBeUndefined();
+  });
+
+  it('marks a request that never finishes as failed', () => {
+    const started = Date.parse('2026-01-01T00:00:00.000Z');
+    const [record] = presentTrafficRecords([
+      makeRequest({
+        id: 'pending-2',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        pending: true,
+      }),
+    ], started + PENDING_TRAFFIC_TIMEOUT_MS);
+
+    expect(record.pending).toBe(false);
+    expect(record.connectionFailed).toBe(true);
+    expect(record.durationMs).toBe(PENDING_TRAFFIC_TIMEOUT_MS);
+  });
+
+  it('does not let a pending capture hide a completed response', () => {
+    const pending = makeRequest({
+      id: '11111111-1111-4111-8111-111111111111',
+      headers: { 'x-mockforge-request-id': 'trace-pending' },
+      pending: true,
+      durationMs: 0,
+    });
+    const completed = makeRequest({
+      id: 'GET:/api/items:2026-01-01T00:00:00.000Z',
+      headers: { 'x-mockforge-request-id': 'trace-pending' },
+      responseStatus: 200,
+      durationMs: 40,
+      body: '{"ok":true}',
+    });
+
+    const [record] = dedupeTrafficRecords([pending, completed]);
+
+    expect(record.responseStatus).toBe(200);
+    expect(record.pending).toBeUndefined();
+    expect(record.durationMs).toBe(40);
+    expect(record.body).toBe('{"ok":true}');
   });
 });

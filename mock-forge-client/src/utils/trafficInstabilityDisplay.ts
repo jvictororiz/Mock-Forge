@@ -34,6 +34,9 @@ export function getTrafficStatusLabel(record: CapturedRequest, t: Translation): 
   if (record.clientInstability) {
     return t.traffic.clientInstabilityStatus;
   }
+  if (record.pending) {
+    return t.traffic.pendingStatus;
+  }
   return record.responseStatus != null ? String(record.responseStatus) : '—';
 }
 

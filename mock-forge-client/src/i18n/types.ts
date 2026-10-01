@@ -202,6 +202,7 @@ export type Translation = {
     resizePanels: string;
     instabilityStatus: string;
     connectionFailedStatus: string;
+    pendingStatus: string;
     clientInstabilityStatus: string;
     instabilityGeneric: string;
     instabilityIndicatorTitle: string;
@@ -385,6 +386,7 @@ export type Translation = {
     noResponseYet: string;
     noResponseBody: string;
     copyPath: string;
+    closeDetail: string;
   };
   devices: {
     intro: string;

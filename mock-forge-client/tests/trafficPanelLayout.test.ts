@@ -18,6 +18,14 @@ describe('trafficPanelLayout', () => {
     expect(getVisiblePanelOrder(['detail', 'list', 'mirror'], false)).toEqual(['detail', 'list']);
   });
 
+  it('hides the detail panel when it is closed', () => {
+    expect(getVisiblePanelOrder(DEFAULT_PANEL_ORDER, false, false)).toEqual(['list']);
+    expect(getVisiblePanelOrder(['detail', 'mirror', 'list'], true, false)).toEqual([
+      'mirror',
+      'list',
+    ]);
+  });
+
   it('keeps full order when mirror is open', () => {
     expect(getVisiblePanelOrder(DEFAULT_PANEL_ORDER, true)).toEqual(DEFAULT_PANEL_ORDER);
     expect(getVisiblePanelOrder(['detail', 'list', 'mirror'], true)).toEqual([

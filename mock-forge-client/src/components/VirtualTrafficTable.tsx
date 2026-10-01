@@ -1,5 +1,5 @@
 import React from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual';
 import { TrafficTableRow } from './TrafficTableRow';
 import type { CapturedRequest, MockKind } from '../types';
 
@@ -26,6 +26,8 @@ type VirtualTrafficTableProps = {
   theadStyle?: React.CSSProperties;
 };
 
+const TRAFFIC_SCROLL_FALLBACK_RECT = { width: 800, height: 600 };
+
 export function VirtualTrafficTable({
   tableWrapperRef,
   records,
@@ -50,6 +52,12 @@ export function VirtualTrafficTable({
     getScrollElement: () => tableWrapperRef.current,
     estimateSize: () => TRAFFIC_ROW_HEIGHT,
     overscan: 12,
+    initialRect: TRAFFIC_SCROLL_FALLBACK_RECT,
+    observeElementRect: (instance, onResize) => observeElementRect(instance, (rect) => {
+      if (rect.height <= 0) return;
+      onResize(rect);
+    }),
+    getItemKey: (index) => records[index]?.id ?? index,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();

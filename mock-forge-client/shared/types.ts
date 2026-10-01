@@ -130,6 +130,8 @@ export interface CapturedRequest {
   connectionFailed?: boolean;
   /** True when upstream succeeded but the client lost the connection mid-stream. */
   clientInstability?: boolean;
+  /** True while the proxy has seen the request but not a finished response yet. */
+  pending?: boolean;
 }
 
 export interface AdbDevice {

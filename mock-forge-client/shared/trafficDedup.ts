@@ -32,13 +32,52 @@ function mergeTrafficRecords(primary: CapturedRequest, secondary: CapturedReques
     instabilityKind: primary.instabilityKind ?? secondary.instabilityKind,
     instabilityMessage: primary.instabilityMessage ?? secondary.instabilityMessage,
     recordType: primary.recordType ?? secondary.recordType,
-    durationMs: primary.durationMs ?? secondary.durationMs,
+    durationMs: trafficRecordIsPending(primary)
+      ? (secondary.durationMs ?? primary.durationMs)
+      : (primary.durationMs ?? secondary.durationMs),
     clientIp: primary.clientIp ?? secondary.clientIp,
     userAgent: primary.userAgent ?? secondary.userAgent,
     consumerId: primary.consumerId ?? secondary.consumerId,
     consumerLabel: primary.consumerLabel ?? secondary.consumerLabel,
     consumerPlatform: primary.consumerPlatform ?? secondary.consumerPlatform,
+    pending: trafficRecordIsPending(primary) && trafficRecordIsPending(secondary) ? true : undefined,
   };
+}
+
+function trafficRecordIsPending(record: CapturedRequest): boolean {
+  return record.pending === true
+    && record.responseStatus == null
+    && !record.connectionFailed;
+}
+
+export const PENDING_TRAFFIC_TIMEOUT_MS = 60_000;
+
+export function presentTrafficRecords(
+  records: CapturedRequest[],
+  now = Date.now(),
+): CapturedRequest[] {
+  return records.map((record) => {
+    if (!trafficRecordIsPending(record)) return record;
+
+    const started = Date.parse(record.timestamp);
+    if (!Number.isFinite(started)) return record;
+
+    const elapsed = Math.max(0, now - started);
+    if (elapsed >= PENDING_TRAFFIC_TIMEOUT_MS) {
+      return {
+        ...record,
+        pending: false,
+        connectionFailed: true,
+        instabilityKind: record.instabilityKind ?? 'connection_failed',
+        instabilityMessage: record.instabilityMessage
+          ?? 'Response timed out before completion',
+        durationMs: PENDING_TRAFFIC_TIMEOUT_MS,
+      };
+    }
+
+    if (record.durationMs === elapsed) return record;
+    return { ...record, durationMs: elapsed };
+  });
 }
 
 export function capturedRequestSnapshotEqual(a: CapturedRequest, b: CapturedRequest): boolean {
@@ -52,6 +91,7 @@ export function capturedRequestSnapshotEqual(a: CapturedRequest, b: CapturedRequ
     && a.mockedResponse === b.mockedResponse
     && a.forcedExecution === b.forcedExecution
     && a.connectionFailed === b.connectionFailed
+    && a.pending === b.pending
     && a.clientInstability === b.clientInstability
     && a.recordType === b.recordType
     && a.instabilityKind === b.instabilityKind
@@ -78,6 +118,7 @@ export function buildTrafficFingerprint(records: CapturedRequest[]): string {
     record.mockedResponse ? '1' : '0',
     record.forcedExecution ? '1' : '0',
     record.connectionFailed ? '1' : '0',
+    record.pending ? '1' : '0',
     record.clientInstability ? '1' : '0',
     record.recordType ?? 'request',
     record.instabilityKind ?? '',
