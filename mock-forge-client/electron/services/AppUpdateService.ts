@@ -143,7 +143,8 @@ function fetchLatestRelease(): Promise<GithubRelease> {
           return;
         }
         if (status !== 200) {
-          reject(new Error(`GitHub API HTTP ${status}`));
+          const detail = githubErrorDetail(Buffer.concat(chunks).toString('utf8'));
+          reject(new Error(detail ? `GitHub API HTTP ${status}: ${detail}` : `GitHub API HTTP ${status}`));
           return;
         }
         try {
@@ -157,6 +158,15 @@ function fetchLatestRelease(): Promise<GithubRelease> {
     request.on('error', reject);
     request.end();
   });
+}
+
+function githubErrorDetail(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { message?: string };
+    return (parsed.message || '').trim();
+  } catch {
+    return '';
+  }
 }
 
 function networkErrorMessage(error: unknown): string {
@@ -209,15 +219,30 @@ function startBrewUpgradeAndQuit(caskUrl: string | null): void {
   const caskPath = join(tmpdir(), 'mockforge-update.rb');
   const pid = process.pid;
   const script = `#!/bin/bash
-set -euo pipefail
-export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+log="\${HOME}/Library/Logs/MockForge/update.log"
+mkdir -p "\$(dirname "\$log")" 2>/dev/null || true
+exec >>"\$log" 2>&1
+echo "---- \$(date) ----"
 while kill -0 ${pid} 2>/dev/null; do
   sleep 0.2
 done
 sleep 0.4
-curl -fsSL ${shellQuote(caskUrl)} -o ${shellQuote(caskPath)}
-${shellQuote(brew)} install --cask --force ${shellQuote(caskPath)}
-open -a MockForge
+curl -fsSL -A MockForge ${shellQuote(caskUrl)} -o ${shellQuote(caskPath)} || echo "curl failed: \$?"
+${shellQuote(brew)} install --cask --force ${shellQuote(caskPath)} || echo "brew failed: \$?"
+sleep 1
+open_mockforge() {
+  local candidate
+  for candidate in "/Applications/MockForge.app" "\$HOME/Applications/MockForge.app"; do
+    if [ -d "\$candidate" ]; then
+      /usr/bin/open "\$candidate" && return 0
+    fi
+  done
+  /usr/bin/open -b com.mockforge.app && return 0
+  /usr/bin/open -a MockForge && return 0
+  return 1
+}
+open_mockforge || echo "open failed: \$?"
 `;
   writeFileSync(scriptPath, script, 'utf8');
   chmodSync(scriptPath, 0o755);
