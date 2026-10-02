@@ -71,8 +71,8 @@ jobs:
         include:
           - os: macos-latest
             arch: arm64
-          # Intel runner so the bundled JRE matches the package arch.
-          - os: macos-13
+          # Last free Intel image. macos-13 was removed, so that job queued forever.
+          - os: macos-15-intel
             arch: x64
     runs-on: ${{ matrix.os }}
     # Fail fast: a healthy Mac build should finish well under 15 minutes locally.
