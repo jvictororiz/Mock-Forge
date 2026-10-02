@@ -1,4 +1,3 @@
-import { CopyButton } from './CopyButton';
 import { useI18n } from '../hooks/useI18n';
 import { useUpdateStore } from '../stores/updateStore';
 import { showToast } from '../utils/notify';
@@ -105,16 +104,6 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
           </button>
         ) : null}
       </div>
-
-      {window.mockforge.platform === 'darwin' && result?.brewInstallCommand ? (
-        <div style={styles.brewBox}>
-          <span style={styles.brewLabel}>{t.settings.brewInstallHint}</span>
-          <div style={styles.brewRow}>
-            <code style={styles.brewCode}>{result.brewInstallCommand}</code>
-            <CopyButton value={result.brewInstallCommand} title={t.common.copy} />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -185,26 +174,5 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '50%',
     background: '#1c1403',
     flexShrink: 0,
-  },
-  brewBox: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    marginTop: '4px',
-  },
-  brewLabel: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-  },
-  brewRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  brewCode: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '11px',
-    color: 'var(--text-primary)',
-    wordBreak: 'break-all',
   },
 };
