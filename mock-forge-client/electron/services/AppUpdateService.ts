@@ -1,7 +1,6 @@
 import { execFile, spawn } from 'child_process';
-import { app, shell } from 'electron';
+import { app, net, shell } from 'electron';
 import { chmodSync, writeFileSync } from 'fs';
-import { get as httpsGet } from 'https';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
@@ -13,6 +12,7 @@ import {
   resolveUpdatePlan,
 } from '../../shared/appUpdate';
 import { downloadFile } from '../utils/downloadFile';
+import { updatesSession } from '../utils/updatesSession';
 import { resolveCommandPath } from '../utils/platform';
 import { getShellEnv } from '../utils/shellEnv';
 
@@ -121,38 +121,22 @@ export async function applyAppUpdate(
   return { success: true };
 }
 
-const RELEASE_HEADERS = {
-  Accept: 'application/vnd.github+json',
-  'User-Agent': 'MockForge',
-  'X-GitHub-Api-Version': '2022-11-28',
-};
-
 function fetchLatestRelease(): Promise<GithubRelease> {
-  // Node's HTTPS client sends User-Agent. Electron's net.fetch drops it, and GitHub answers 403.
-  return fetchLatestReleaseWithHttps(githubApiLatestReleaseUrl());
-}
-
-function fetchLatestReleaseWithHttps(url: string, redirects = 0): Promise<GithubRelease> {
   return new Promise((resolve, reject) => {
-    if (redirects > 5) {
-      reject(new Error('Too many redirects while checking for updates'));
-      return;
-    }
-    const request = httpsGet(url, { headers: RELEASE_HEADERS }, (response) => {
-      const status = response.statusCode ?? 0;
-      if ([301, 302, 303, 307, 308].includes(status)) {
-        const location = response.headers.location;
-        response.resume();
-        if (!location) {
-          reject(new Error(`GitHub API redirect without location (${status})`));
-          return;
-        }
-        fetchLatestReleaseWithHttps(new URL(location, url).toString(), redirects + 1).then(resolve, reject);
-        return;
-      }
+    const request = net.request({
+      method: 'GET',
+      url: githubApiLatestReleaseUrl(),
+      session: updatesSession(),
+      redirect: 'follow',
+    });
+    request.setHeader('Accept', 'application/vnd.github+json');
+    request.setHeader('User-Agent', 'MockForge');
+    request.setHeader('X-GitHub-Api-Version', '2022-11-28');
 
+    request.on('response', (response) => {
+      const status = response.statusCode;
       const chunks: Buffer[] = [];
-      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      response.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
       response.on('end', () => {
         if (status === 404) {
           reject(new Error('No GitHub release published yet'));
@@ -171,6 +155,7 @@ function fetchLatestReleaseWithHttps(url: string, redirects = 0): Promise<Github
       response.on('error', reject);
     });
     request.on('error', reject);
+    request.end();
   });
 }
 
