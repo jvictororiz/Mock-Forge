@@ -85,9 +85,6 @@ export function Header() {
     <header style={styles.header} className="app-header">
       <div style={styles.inner}>
         <div style={styles.left}>
-        <span style={styles.version} title={t.settings.version}>
-          v{packageJson.version}
-        </span>
         <TabBar variant="pill">
           <Tab active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')}>
             {t.app.traffic}
@@ -104,6 +101,9 @@ export function Header() {
           }}>
             {t.app.settings}
           </Tab>
+          <Tab active={activeTab === 'environments'} onClick={() => setActiveTab('environments')}>
+            {t.app.environment}
+          </Tab>
         </TabBar>
         </div>
 
@@ -111,6 +111,9 @@ export function Header() {
           <div style={styles.logo}>
             <img src={appIcon} alt="" style={styles.logoIcon} width={22} height={22} />
             <span style={styles.logoText}>MockForge</span>
+            <span style={styles.version} title={t.settings.version}>
+              v{packageJson.version}
+            </span>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ export type Translation = {
     traffic: string;
     editor: string;
     settings: string;
+    environment: string;
     history: string;
     recordings: string;
   };

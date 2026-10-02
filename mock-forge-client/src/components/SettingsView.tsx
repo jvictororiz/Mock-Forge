@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useAppStore } from '../stores/appStore';
 import { DevicePanel } from './DevicePanel';
-import { EnvironmentPanel } from './EnvironmentPanel';
 import { LanguagePanel } from './LanguagePanel';
 import { UpdateControls } from './UpdateControls';
 import { McpPanel } from './McpPanel';
@@ -10,7 +9,6 @@ import { DEFAULT_PORT } from '../../shared/constants';
 import { getUpstreamUrl, parseUpstreamUrl, isUpstreamUrlValid, isUpstreamDirty } from '../../shared/upstreamUtils';
 import { Tab, TabBar } from './TabBar';
 import { CopyButton } from './CopyButton';
-import packageJson from '../../package.json';
 import { showToast } from '../utils/notify';
 import { useI18n } from '../hooks/useI18n';
 import { ensureCurrentEnvironment } from '../utils/ensureEnvironment';
@@ -52,6 +50,7 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadingEnv, setLoadingEnv] = useState(false);
+  const [clientUrlsOpen, setClientUrlsOpen] = useState(false);
 
   useEffect(() => {
     if (currentEnvironment) {
@@ -148,10 +147,6 @@ export function SettingsView() {
             <p style={styles.pageSubtitle}>{t.settings.subtitle}</p>
           </div>
 
-          <section style={styles.envSection}>
-            <EnvironmentPanel />
-          </section>
-
           <div style={styles.stickyTabsWrap}>
             <TabBar style={{ padding: 0 }}>
               {tabs.map((tab) => (
@@ -208,55 +203,52 @@ export function SettingsView() {
             </div>
 
             <div style={styles.field}>
-              <label style={styles.label}>{t.settings.clientAppUrls}</label>
-              <div style={styles.urlReferencePanel}>
-                <p style={styles.urlReferenceIntro}>{t.settings.clientAppUrlsIntro}</p>
-                <div style={styles.urlList}>
-                  <UrlRow
-                    label={t.settings.urlTunnel}
-                    hint={t.settings.urlTunnelHint}
-                    url={`http://localhost:${displayPort}`}
-                  />
-                  {localIp ? (
+              <button
+                type="button"
+                style={styles.disclosureToggle}
+                onClick={() => setClientUrlsOpen((open) => !open)}
+                aria-expanded={clientUrlsOpen}
+              >
+                <span style={styles.disclosureChevron} aria-hidden>
+                  {clientUrlsOpen ? '▾' : '▸'}
+                </span>
+                <span style={styles.disclosureLabel}>{t.settings.clientAppUrls}</span>
+              </button>
+              {clientUrlsOpen && (
+                <div style={styles.urlReferencePanel}>
+                  <p style={styles.urlReferenceIntro}>{t.settings.clientAppUrlsIntro}</p>
+                  <div style={styles.urlList}>
                     <UrlRow
-                      label={t.settings.urlMacIp}
-                      hint={t.settings.urlMacIpHint}
-                      url={`http://${localIp}:${displayPort}`}
+                      label={t.settings.urlTunnel}
+                      hint={t.settings.urlTunnelHint}
+                      url={`http://localhost:${displayPort}`}
+                    />
+                    {localIp ? (
+                      <UrlRow
+                        label={t.settings.urlMacIp}
+                        hint={t.settings.urlMacIpHint}
+                        url={`http://${localIp}:${displayPort}`}
+                        divided
+                      />
+                    ) : null}
+                    <UrlRow
+                      label={t.settings.urlLocalhost}
+                      hint={t.settings.urlLocalhostHint}
+                      url={`http://localhost:${displayPort}`}
                       divided
                     />
-                  ) : null}
-                  <UrlRow
-                    label={t.settings.urlLocalhost}
-                    hint={t.settings.urlLocalhostHint}
-                    url={`http://localhost:${displayPort}`}
-                    divided
-                  />
-                  <UrlRow
-                    label={t.settings.urlEmulator}
-                    hint={t.settings.urlEmulatorHint}
-                    url={`http://10.0.2.2:${displayPort}`}
-                    divided
-                  />
+                    <UrlRow
+                      label={t.settings.urlEmulator}
+                      hint={t.settings.urlEmulatorHint}
+                      url={`http://10.0.2.2:${displayPort}`}
+                      divided
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>{t.settings.system}</label>
-              <div style={styles.infoGrid}>
-                <InfoRow
-                  label={t.settings.serverStatus}
-                  value={serverStatus.running ? t.settings.serverRunning(serverStatus.port) : t.server.stopped}
-                  ok={serverStatus.running}
-                />
-                <InfoRow
-                  label={t.settings.version}
-                  value={packageJson.version}
-                  ok
-                />
-              </div>
-              <UpdateControls />
-            </div>
+            <UpdateControls />
           </>
         )}
 
@@ -310,17 +302,6 @@ function UrlRow({
         <code style={styles.urlCode}>{url}</code>
         <CopyButton value={url} title={t.common.copy} />
       </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value, ok }: { label: string; value: string; ok: boolean }) {
-  return (
-    <div style={styles.infoRow}>
-      <span style={styles.infoLabel}>{label}</span>
-      <span style={{ ...styles.infoValue, color: ok ? 'var(--text-secondary)' : 'var(--warning)' }}>
-        {value}
-      </span>
     </div>
   );
 }
@@ -382,11 +363,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-secondary)',
     marginBottom: '16px',
   },
-  envSection: {
-    marginBottom: '12px',
-    paddingBottom: '12px',
-    borderBottom: '1px solid var(--border)',
-  },
   field: {
     marginBottom: '20px',
   },
@@ -396,6 +372,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     color: 'var(--text-secondary)',
     marginBottom: '4px',
+  },
+  disclosureToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: 0,
+    background: 'transparent',
+    color: 'inherit',
+    width: '100%',
+    textAlign: 'left',
+  },
+  disclosureChevron: {
+    width: '12px',
+    flexShrink: 0,
+    color: 'var(--text-muted)',
+    fontSize: '12px',
+    lineHeight: 1,
+  },
+  disclosureLabel: {
+    fontSize: '12px',
+    fontWeight: 500,
+    color: 'var(--text-secondary)',
   },
   fieldSubtitle: {
     fontSize: '11px',
@@ -481,28 +479,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     color: 'var(--text-muted)',
     lineHeight: 1.4,
-  },
-  infoGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  infoRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '16px',
-    padding: '8px 0',
-  },
-  infoLabel: {
-    fontSize: '12px',
-    color: 'var(--text-muted)',
-    flexShrink: 0,
-  },
-  infoValue: {
-    fontSize: '12px',
-    textAlign: 'right',
-    wordBreak: 'break-word',
   },
   saveBtn: {
     padding: '10px 24px',

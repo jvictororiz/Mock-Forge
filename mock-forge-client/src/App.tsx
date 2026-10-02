@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect } from 'react';
 import { Header } from './components/Header';
 import { TrafficLayout } from './components/TrafficLayout';
 import { SettingsView } from './components/SettingsView';
+import { EnvironmentView } from './components/EnvironmentView';
 import { TabLoadingFallback } from './components/TabLoadingFallback';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast';
@@ -120,15 +121,16 @@ export default function App() {
           >
             <TrafficLayout />
           </div>
-          {activeTab === 'settings' ? (
-            <SettingsView />
-          ) : activeTab === 'traffic' ? null : (
+          {activeTab === 'settings' && <SettingsView />}
+          {activeTab === 'environments' && <EnvironmentView />}
+          {activeTab === 'editor' && (
             <Suspense fallback={<TabLoadingFallback />}>
-              {activeTab === 'editor' ? (
-                <EditorLayout />
-              ) : (
-                <HistoryLayout />
-              )}
+              <EditorLayout />
+            </Suspense>
+          )}
+          {activeTab === 'sessions' && (
+            <Suspense fallback={<TabLoadingFallback />}>
+              <HistoryLayout />
             </Suspense>
           )}
         </ErrorBoundary>

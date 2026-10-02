@@ -401,14 +401,14 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'flex-end',
     gap: '8px',
     flexWrap: 'wrap',
-    maxWidth: '33.333%',
   },
   field: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    flex: 1,
+    flex: '1 1 240px',
     minWidth: 0,
+    maxWidth: '360px',
   },
   label: {
     fontSize: '11px',
@@ -451,7 +451,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '6px',
     alignItems: 'center',
     flexWrap: 'wrap',
-    maxWidth: '33.333%',
   },
   hint: {
     fontSize: '11px',

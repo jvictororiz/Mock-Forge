@@ -232,7 +232,7 @@ function serverStatusEqual(left: ServerStatus, right: ServerStatus): boolean {
     });
 }
 
-type Tab = 'traffic' | 'editor' | 'settings' | 'sessions';
+type Tab = 'traffic' | 'editor' | 'settings' | 'environments' | 'sessions';
 type SettingsTab = 'server' | 'devices' | 'mcp' | 'language';
 type EditorTab = 'request' | 'response';
 
@@ -286,7 +286,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   settingsTab: 'server',
   setSettingsTab: (tab) => set({ settingsTab: tab }),
   openDevicesSettings: () => set({ activeTab: 'settings', settingsTab: 'devices' }),
-  openEnvironmentsSettings: () => set({ activeTab: 'settings', settingsTab: 'server' }),
+  openEnvironmentsSettings: () => set({ activeTab: 'environments' }),
 
   serverStatus: {
     running: false,

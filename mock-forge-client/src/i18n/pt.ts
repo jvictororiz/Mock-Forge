@@ -5,6 +5,7 @@ export const pt: Translation = {
     traffic: 'Tráfego',
     editor: 'Editor',
     settings: 'Configurações',
+    environment: 'Ambiente',
     history: 'Histórico',
     recordings: 'Gravações',
   },
@@ -34,7 +35,7 @@ export const pt: Translation = {
   },
   settings: {
     title: 'Configurações',
-    subtitle: 'Configure servidor, ambientes, integrações com IA, idioma e conexões de devices.',
+    subtitle: 'Configure servidor, integrações com IA, idioma e conexões de devices.',
     tabs: {
       server: 'Servidor',
       environments: 'Ambientes',
@@ -53,7 +54,7 @@ export const pt: Translation = {
       'URL base da API real. Requisições sem mock são encaminhadas para este servidor.',
     upstreamHint: 'Ex.: https://api.seudominio.com/ — salve para aplicar.',
     upstreamInvalid: 'URL inválida',
-    clientAppUrls: 'Apontar o app cliente',
+    clientAppUrls: 'Instruções para conectar o aplicativo',
     clientAppUrlsIntro:
       'Instruções para apontar no seu app: escolha o cenário abaixo, copie a URL e configure como base URL no app mobile ou cliente HTTP. O tráfego passará pelo MockForge antes de ser encaminhado ao Proxy acima.',
     urlTunnel: 'Android (com túnel)',

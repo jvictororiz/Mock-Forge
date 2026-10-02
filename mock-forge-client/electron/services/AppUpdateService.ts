@@ -1,6 +1,7 @@
 import { execFile, spawn } from 'child_process';
-import { app, shell } from 'electron';
+import { app, net, shell } from 'electron';
 import { chmodSync, writeFileSync } from 'fs';
+import { get as httpsGet } from 'https';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
@@ -57,7 +58,7 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
       caskUrl: null,
       brewInstallCommand: brewInstall,
       packaged: app.isPackaged,
-      error: isMissingPublishedRelease(error) ? undefined : (error instanceof Error ? error.message : String(error)),
+      error: isMissingPublishedRelease(error) ? undefined : networkErrorMessage(error),
     };
     return lastCheck;
   }
@@ -129,23 +130,95 @@ export async function openReleaseUrl(url: string): Promise<{ success: boolean; e
   return { success: true };
 }
 
-async function fetchLatestRelease(): Promise<GithubRelease> {
-  const response = await fetch(githubApiLatestReleaseUrl(), {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'MockForge',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  });
+const RELEASE_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'User-Agent': 'MockForge',
+  'X-GitHub-Api-Version': '2022-11-28',
+};
 
+async function fetchLatestRelease(): Promise<GithubRelease> {
+  const url = githubApiLatestReleaseUrl();
+  try {
+    return await readReleaseResponse(await net.fetch(url, { headers: RELEASE_HEADERS }));
+  } catch (error) {
+    if (!isTransportFailure(error)) throw error;
+    return fetchLatestReleaseWithHttps(url);
+  }
+}
+
+async function readReleaseResponse(response: Response): Promise<GithubRelease> {
   if (response.status === 404) {
     throw new Error('No GitHub release published yet');
   }
   if (!response.ok) {
     throw new Error(`GitHub API HTTP ${response.status}`);
   }
-
   return response.json() as Promise<GithubRelease>;
+}
+
+function fetchLatestReleaseWithHttps(url: string, redirects = 0): Promise<GithubRelease> {
+  return new Promise((resolve, reject) => {
+    if (redirects > 5) {
+      reject(new Error('Too many redirects while checking for updates'));
+      return;
+    }
+    const request = httpsGet(url, { headers: RELEASE_HEADERS }, (response) => {
+      const status = response.statusCode ?? 0;
+      if ([301, 302, 303, 307, 308].includes(status)) {
+        const location = response.headers.location;
+        response.resume();
+        if (!location) {
+          reject(new Error(`GitHub API redirect without location (${status})`));
+          return;
+        }
+        fetchLatestReleaseWithHttps(new URL(location, url).toString(), redirects + 1).then(resolve, reject);
+        return;
+      }
+
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      response.on('end', () => {
+        if (status === 404) {
+          reject(new Error('No GitHub release published yet'));
+          return;
+        }
+        if (status !== 200) {
+          reject(new Error(`GitHub API HTTP ${status}`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')) as GithubRelease);
+        } catch {
+          reject(new Error('GitHub API returned invalid JSON'));
+        }
+      });
+      response.on('error', reject);
+    });
+    request.on('error', reject);
+  });
+}
+
+function isTransportFailure(error: unknown): boolean {
+  const message = networkErrorMessage(error);
+  return /fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|certificate|socket/i.test(message);
+}
+
+function networkErrorMessage(error: unknown): string {
+  const parts: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      if (current.message) parts.push(current.message);
+      current = (current as Error & { cause?: unknown }).cause;
+      continue;
+    }
+    parts.push(String(current));
+    break;
+  }
+  const unique = parts.filter((part, index) => parts.indexOf(part) === index);
+  return unique.join(': ') || 'Network request failed';
 }
 
 async function isBrewCaskInstalled(): Promise<boolean> {
