@@ -45,6 +45,7 @@ export type Messages = {
     sub: string;
     windows: string;
     mac: string;
+    windowsOptionsLabel: string;
     macOptionsLabel: string;
     macAppleSilicon: string;
     macIntel: string;
@@ -181,6 +182,7 @@ export const messages: Messages = {
     sub: 'Escolha Windows ou macOS. No Mac, você pode baixar o DMG do seu chip ou instalar pelo Homebrew.',
     windows: 'Windows',
     mac: 'macOS',
+    windowsOptionsLabel: 'Opções para Windows',
     macOptionsLabel: 'Opções para macOS',
     macAppleSilicon: 'Apple Silicon',
     macIntel: 'Intel',
