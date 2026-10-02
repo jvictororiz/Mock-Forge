@@ -7,9 +7,13 @@ import { promisify } from 'util';
 import {
   type AppUpdateCheckResult,
   type GithubRelease,
+  CASK_TOKEN,
   brewInstallCommand,
-  githubApiLatestReleaseUrl,
+  githubLatestReleasePageUrl,
+  parseBrewLivecheck,
+  releaseFromTag,
   resolveUpdatePlan,
+  tagFromGithubReleaseUrl,
 } from '../../shared/appUpdate';
 import { downloadFile } from '../utils/downloadFile';
 import { updatesSession } from '../utils/updatesSession';
@@ -17,7 +21,6 @@ import { resolveCommandPath } from '../utils/platform';
 import { getShellEnv } from '../utils/shellEnv';
 
 const execFileAsync = promisify(execFile);
-const CASK_TOKEN = 'mockforge';
 
 let lastCheck: AppUpdateCheckResult | null = null;
 
@@ -26,10 +29,11 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
   const brewInstall = brewInstallCommand();
 
   try {
-    const release = await fetchLatestRelease();
     const brewCaskInstalled = process.platform === 'darwin'
       ? await isBrewCaskInstalled()
       : false;
+    const release = (brewCaskInstalled ? await fetchLatestReleaseFromBrew() : null)
+      ?? await fetchLatestRelease();
 
     const plan = resolveUpdatePlan({
       currentVersion,
@@ -123,41 +127,66 @@ export async function applyAppUpdate(
 
 function fetchLatestRelease(): Promise<GithubRelease> {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      action();
+    };
+
     const request = net.request({
       method: 'GET',
-      url: githubApiLatestReleaseUrl(),
+      url: githubLatestReleasePageUrl(),
       session: updatesSession(),
-      redirect: 'follow',
+      redirect: 'manual',
     });
-    request.setHeader('Accept', 'application/vnd.github+json');
+    request.setHeader('Accept', 'text/html');
     request.setHeader('User-Agent', 'MockForge');
-    request.setHeader('X-GitHub-Api-Version', '2022-11-28');
+
+    request.on('redirect', (_status, _method, redirectUrl) => {
+      const release = releaseFromRedirect(redirectUrl);
+      if (!release) {
+        finish(() => reject(new Error('GitHub did not return a release tag')));
+        return;
+      }
+      finish(() => resolve(release));
+    });
 
     request.on('response', (response) => {
       const status = response.statusCode;
       const chunks: Buffer[] = [];
       response.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
       response.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf8');
+        const release = releaseFromRedirect(firstHeader(response.headers.location))
+          ?? releaseFromRedirect(body);
+        if (release && (status === 200 || status === 301 || status === 302)) {
+          finish(() => resolve(release));
+          return;
+        }
         if (status === 404) {
-          reject(new Error('No GitHub release published yet'));
+          finish(() => reject(new Error('No GitHub release published yet')));
           return;
         }
-        if (status !== 200) {
-          const detail = githubErrorDetail(Buffer.concat(chunks).toString('utf8'));
-          reject(new Error(detail ? `GitHub API HTTP ${status}: ${detail}` : `GitHub API HTTP ${status}`));
-          return;
-        }
-        try {
-          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')) as GithubRelease);
-        } catch {
-          reject(new Error('GitHub API returned invalid JSON'));
-        }
+        const detail = githubErrorDetail(body);
+        finish(() => reject(new Error(detail ? `GitHub HTTP ${status}: ${detail}` : `GitHub HTTP ${status}`)));
       });
-      response.on('error', reject);
+      response.on('error', (error: unknown) => finish(() => reject(error)));
     });
-    request.on('error', reject);
+
+    request.on('error', (error) => finish(() => reject(error)));
     request.end();
   });
+}
+
+function releaseFromRedirect(value: string): GithubRelease | null {
+  const tag = tagFromGithubReleaseUrl(value);
+  return tag ? releaseFromTag(tag) : null;
+}
+
+function firstHeader(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
 }
 
 function githubErrorDetail(body: string): string {
@@ -185,6 +214,27 @@ function networkErrorMessage(error: unknown): string {
   }
   const unique = parts.filter((part, index) => parts.indexOf(part) === index);
   return unique.join(': ') || 'Network request failed';
+}
+
+async function fetchLatestReleaseFromBrew(): Promise<GithubRelease | null> {
+  const brew = resolveBrewPath();
+  if (!brew) return null;
+
+  try {
+    const { stdout } = await execFileAsync(brew, ['livecheck', '--cask', '--json', CASK_TOKEN], {
+      env: {
+        ...getShellEnv(),
+        HOMEBREW_NO_AUTO_UPDATE: '1',
+        HOMEBREW_NO_ENV_HINTS: '1',
+        HOMEBREW_NO_ANALYTICS: '1',
+      },
+      timeout: 45_000,
+    });
+    const latest = parseBrewLivecheck(stdout);
+    return latest ? releaseFromTag(latest) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function isBrewCaskInstalled(): Promise<boolean> {

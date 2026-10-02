@@ -3,7 +3,10 @@ import {
   compareVersions,
   macDmgAssetName,
   macDmgAssetNameLegacy,
+  parseBrewLivecheck,
+  releaseFromTag,
   resolveUpdatePlan,
+  tagFromGithubReleaseUrl,
   windowsSetupAssetName,
   windowsSetupAssetNameLegacy,
   type GithubRelease,
@@ -17,6 +20,60 @@ const release = (tag: string, assetNames: string[]): GithubRelease => ({
     name,
     browser_download_url: `https://github.com/jvictororiz/Mock-Forge/releases/download/${tag}/${name}`,
   })),
+});
+
+describe('parseBrewLivecheck', () => {
+  it('reads the latest version from Homebrew JSON', () => {
+    const stdout = JSON.stringify([
+      {
+        cask: 'mockforge',
+        version: { current: '0.7.16', latest: '0.7.17', outdated: true },
+      },
+    ]);
+    expect(parseBrewLivecheck(stdout)).toBe('0.7.17');
+  });
+
+  it('reads the plain livecheck line', () => {
+    expect(parseBrewLivecheck('mockforge: 0.7.16 ==> 0.7.17\n')).toBe('0.7.17');
+  });
+
+  it('returns null when Homebrew reports no version', () => {
+    expect(parseBrewLivecheck('')).toBeNull();
+    expect(parseBrewLivecheck('[{"cask":"mockforge","status":"error"}]')).toBeNull();
+  });
+});
+
+describe('tagFromGithubReleaseUrl', () => {
+  it('reads the version from the latest-release redirect', () => {
+    expect(tagFromGithubReleaseUrl(
+      'https://github.com/jvictororiz/Mock-Forge/releases/tag/v0.7.17',
+    )).toBe('v0.7.17');
+    expect(tagFromGithubReleaseUrl(
+      '/jvictororiz/Mock-Forge/releases/tag/v0.7.17',
+    )).toBe('v0.7.17');
+  });
+});
+
+describe('releaseFromTag', () => {
+  it('points the macOS plan at the public download without the GitHub API', () => {
+    const plan = resolveUpdatePlan({
+      currentVersion: '0.7.16',
+      release: releaseFromTag('v0.7.17'),
+      platform: 'darwin',
+      arch: 'arm64',
+      brewCaskInstalled: true,
+    });
+
+    expect(plan.available).toBe(true);
+    expect(plan.latestVersion).toBe('0.7.17');
+    expect(plan.method).toBe('mac-brew');
+    expect(plan.caskUrl).toBe(
+      'https://github.com/jvictororiz/Mock-Forge/releases/download/v0.7.17/mockforge.rb',
+    );
+    expect(plan.downloadUrl).toBe(
+      'https://github.com/jvictororiz/Mock-Forge/releases/download/v0.7.17/MockForge-mac-arm64.dmg',
+    );
+  });
 });
 
 describe('compareVersions', () => {

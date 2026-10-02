@@ -45,6 +45,73 @@ export function githubApiLatestReleaseUrl(): string {
   return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 }
 
+/** Public release page. Avoids the REST API rate limit that returns 403. */
+export function githubLatestReleasePageUrl(): string {
+  return `${githubRepoUrl()}/releases/latest`;
+}
+
+/** Latest version reported by `brew livecheck --cask --json`, or null when the output has none. */
+export function parseBrewLivecheck(stdout: string): string | null {
+  const trimmed = stdout.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    for (const entry of entries) {
+      if (!entry || typeof entry !== 'object') continue;
+      const version = (entry as { version?: { latest?: unknown } }).version;
+      if (typeof version?.latest === 'string') {
+        const semver = semverFromText(version.latest);
+        if (semver) return semver;
+      }
+    }
+  } catch {
+    // Homebrew also prints a plain "current ==> latest" line.
+  }
+
+  const arrow = trimmed.match(/==>\s*v?(\d+\.\d+\.\d+)/i);
+  return arrow?.[1] ?? null;
+}
+
+function semverFromText(value: string): string | null {
+  const match = value.match(/v?(\d+\.\d+\.\d+)/i);
+  return match?.[1] ?? null;
+}
+
+export function tagFromGithubReleaseUrl(value: string): string | null {
+  const match = value.match(/\/releases\/tag\/(v?\d+\.\d+\.\d+)/i);
+  return match?.[1] ?? null;
+}
+
+export function githubAssetDownloadUrl(version: string, fileName: string): string {
+  return `${githubRepoUrl()}/releases/download/v${stripVersionPrefix(version)}/${fileName}`;
+}
+
+const RELEASE_ARCHS = ['arm64', 'x64', 'ia32'] as const;
+
+/** Builds the release the updater expects from a tag, without calling the GitHub API. */
+export function releaseFromTag(tag: string): GithubRelease {
+  const version = stripVersionPrefix(tag);
+  const names = new Set<string>(['mockforge.rb']);
+  for (const arch of RELEASE_ARCHS) {
+    names.add(macDmgAssetName(arch));
+    names.add(macDmgAssetNameLegacy(version, arch));
+    names.add(windowsSetupAssetName(arch));
+    names.add(windowsSetupAssetNameLegacy(version, arch));
+  }
+
+  return {
+    tag_name: `v${version}`,
+    html_url: `${githubRepoUrl()}/releases/tag/v${version}`,
+    body: '',
+    assets: [...names].map((name) => ({
+      name,
+      browser_download_url: githubAssetDownloadUrl(version, name),
+    })),
+  };
+}
+
 export const HOMEBREW_TAP = 'jvictororiz/homebrew-mockforge';
 
 export function brewInstallCommand(): string {
