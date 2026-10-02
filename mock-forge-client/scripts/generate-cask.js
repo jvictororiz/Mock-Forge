@@ -48,6 +48,7 @@ function detectArch(filePath) {
 
 function caskTail(extraDepends) {
   const depends = [extraDepends, '  depends_on macos: :big_sur'].filter(Boolean).join('\n');
+  const installedApp = '#{appdir}/MockForge.app';
   return `  livecheck do
     url :url
     strategy :github_latest
@@ -57,6 +58,12 @@ function caskTail(extraDepends) {
 ${depends}
 
   app "MockForge.app"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "${installedApp}"],
+                   must_succeed: false
+  end
 
   uninstall quit: "com.mockforge.app"
 

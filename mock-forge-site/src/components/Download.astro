@@ -36,7 +36,7 @@ const { t } = Astro.props;
         >
           {t.download.windows}
         </a>
-        <button type="button" class="btn btn-ghost" data-os="mac" data-select-mac>
+        <button type="button" class="btn btn-ghost" data-os="mac" data-select-mac aria-expanded="false">
           {t.download.mac}
         </button>
       </div>
@@ -60,20 +60,24 @@ const { t } = Astro.props;
           >
             {t.download.macIntel}
           </a>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            data-copy-brew
-            data-brew={BREW_INSTALL}
-          >
-            {t.download.brew}
-          </button>
         </div>
         <div class="brew-block">
           <p class="hint">{t.download.brewHint}</p>
-          <code data-brew-cmd>{BREW_INSTALL}</code>
-          <p class="hint muted">{t.download.brewUpgradeHint}</p>
-          <p class="hint muted">{t.download.gatekeeper}</p>
+          <div class="brew-line">
+            <code data-brew-cmd>{BREW_INSTALL}</code>
+            <button
+              type="button"
+              class="copy-icon"
+              data-copy-brew
+              data-brew={BREW_INSTALL}
+              aria-label="Copiar"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="5.2" y="5.2" width="8" height="8" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+                <path d="M3.2 10.6V3.6A1.4 1.4 0 0 1 4.6 2.2H11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -189,15 +193,21 @@ const { t } = Astro.props;
     showMacOptions(true);
   });
 
+  document.querySelector('[data-download="windows"]')?.addEventListener('click', () => {
+    showMacOptions(false);
+  });
+
   const brewBtn = document.querySelector('[data-copy-brew]');
   brewBtn?.addEventListener('click', async () => {
     const value = brewBtn.getAttribute('data-brew') ?? '';
+    const icon = brewBtn.innerHTML;
     try {
       await navigator.clipboard.writeText(value);
-      const original = brewBtn.textContent;
       brewBtn.textContent = copiedLabel;
+      brewBtn.classList.add('is-copied');
       setTimeout(() => {
-        brewBtn.textContent = original;
+        brewBtn.innerHTML = icon;
+        brewBtn.classList.remove('is-copied');
       }, 1200);
     } catch {
       window.prompt('Homebrew', value);
@@ -282,13 +292,16 @@ const { t } = Astro.props;
     font-size: 0.88rem;
   }
 
-  .hint.muted {
-    font-size: 0.82rem;
-    line-height: 1.5;
+  .brew-line {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
   }
 
   code {
     display: block;
+    flex: 1;
+    min-width: 0;
     padding: 0.7rem 0.85rem;
     border-radius: 8px;
     background: var(--bg-soft);
@@ -297,5 +310,37 @@ const { t } = Astro.props;
     font-size: 0.75rem;
     overflow-x: auto;
     color: var(--text);
+  }
+
+  .copy-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .copy-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .copy-icon:hover,
+  .copy-icon.is-copied {
+    color: var(--text);
+    border-color: rgba(232, 232, 237, 0.28);
+  }
+
+  .copy-icon.is-copied {
+    width: auto;
+    padding: 0 0.65rem;
+    font-size: 0.75rem;
   }
 </style>

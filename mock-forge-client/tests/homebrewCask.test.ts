@@ -38,6 +38,10 @@ describe('homebrew cask', () => {
     expect(source).toContain(`intel: "${intel}"`);
     expect(source).toContain('auto_updates true');
     expect(source).toContain('uninstall quit: "com.mockforge.app"');
+    expect(source).toContain('postflight do');
+    expect(source).toContain('"/usr/bin/xattr"');
+    expect(source).toContain('"com.apple.quarantine"');
+    expect(source).toContain('"#{appdir}/MockForge.app"');
     expect(source).toContain('"~/.mockforge"');
     expect(source).toContain(
       'https://github.com/jvictororiz/Mock-Forge/releases/download/v#{version}/MockForge-mac-#{arch}.dmg',

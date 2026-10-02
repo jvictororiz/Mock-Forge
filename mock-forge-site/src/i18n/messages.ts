@@ -48,10 +48,7 @@ export type Messages = {
     macOptionsLabel: string;
     macAppleSilicon: string;
     macIntel: string;
-    brew: string;
     brewHint: string;
-    brewUpgradeHint: string;
-    gatekeeper: string;
     unavailable: string;
     copied: string;
   };
@@ -187,12 +184,7 @@ export const messages: Messages = {
     macOptionsLabel: 'Opções para macOS',
     macAppleSilicon: 'Apple Silicon',
     macIntel: 'Intel',
-    brew: 'Copiar comando Homebrew',
     brewHint: 'Instalação via Homebrew (Apple Silicon e Intel):',
-    brewUpgradeHint:
-      'Depois de instalar pelo Homebrew, atualize com brew upgrade --cask --greedy jvictororiz/homebrew-mockforge/mockforge, ou pelo botão Atualizar dentro do app.',
-    gatekeeper:
-      'Se o macOS bloquear a abertura do app, use Abrir com o botão direito ou permita em Privacidade e Segurança. O app ainda não é notarizado pela Apple.',
     unavailable:
       'A release ainda está sendo gerada. Os downloads ficam disponíveis assim que o build terminar.',
     copied: 'Copiado',
