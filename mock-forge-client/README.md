@@ -34,12 +34,14 @@ In the app: **Settings → System → Check for updates**. A header **Update** b
 | Platform | Update button |
 |---|---|
 | Windows | Downloads NSIS, installs, reopens |
-| macOS (Homebrew cask) | `brew install --cask --force` with the release cask, reopens |
+| macOS (Homebrew cask) | Reinstalls from the release cask and reopens |
 | macOS (DMG) | Opens the disk image — drag to Applications |
 
 ```bash
-brew install --cask https://github.com/jvictororiz/Mock-Forge/releases/latest/download/mockforge.rb
+brew install --cask mockforge
 ```
+
+That command works once Homebrew merges the cask pull request opened at the end of this workflow. The job uses the `HOMEBREW_GITHUB_API_TOKEN` secret (classic PAT, `public_repo` scope).
 
 Environments and sessions stay in `~/.mockforge`.
 

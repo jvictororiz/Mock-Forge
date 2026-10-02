@@ -37,10 +37,6 @@ export function githubRepoUrl(): string {
   return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 }
 
-export function githubLatestCaskUrl(): string {
-  return `${githubRepoUrl()}/releases/latest/download/mockforge.rb`;
-}
-
 export function githubCaskUrlForVersion(version: string): string {
   return `${githubRepoUrl()}/releases/download/v${stripVersionPrefix(version)}/mockforge.rb`;
 }
@@ -50,7 +46,7 @@ export function githubApiLatestReleaseUrl(): string {
 }
 
 export function brewInstallCommand(): string {
-  return `brew install --cask ${githubLatestCaskUrl()}`;
+  return `brew install --cask ${CASK_TOKEN}`;
 }
 
 export function stripVersionPrefix(version: string): string {

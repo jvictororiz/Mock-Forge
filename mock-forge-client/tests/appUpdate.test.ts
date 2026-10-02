@@ -76,6 +76,7 @@ describe('resolveUpdatePlan', () => {
     expect(plan.available).toBe(true);
     expect(plan.method).toBe('mac-brew');
     expect(plan.caskUrl).toContain('mockforge.rb');
+    expect(plan.brewInstallCommand).toBe('brew install --cask mockforge');
   });
 
   it('falls back to the DMG when Homebrew did not install the app', () => {

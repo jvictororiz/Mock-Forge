@@ -46,19 +46,46 @@ function detectArch(filePath) {
   return null;
 }
 
+function caskTail(extraDepends) {
+  const depends = [extraDepends, '  depends_on macos: :big_sur'].filter(Boolean).join('\n');
+  return `  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  auto_updates true
+${depends}
+
+  app "MockForge.app"
+
+  uninstall quit: "com.mockforge.app"
+
+  zap trash: [
+    "~/.mockforge",
+    "~/Library/Application Support/MockForge",
+    "~/Library/Logs/MockForge",
+    "~/Library/Preferences/com.mockforge.app.plist",
+    "~/Library/Saved Application State/com.mockforge.app.savedState",
+  ]
+end
+`;
+}
+
+function normalizeNewlines(body) {
+  return body.replace(/\r\n/g, '\n');
+}
+
 function renderCask({ version, owner, repo, hashes }) {
   const homepage = `https://github.com/${owner}/${repo}`;
   const arm = hashes.arm64;
   const intel = hashes.x64;
-  const caveats = `    MockForge is not notarized. If macOS blocks it, right-click the app and choose Open,
-    or allow it in System Settings → Privacy & Security.`;
 
   if (arm && intel) {
-    return `cask "mockforge" do
+    return normalizeNewlines(`cask "mockforge" do
   arch arm: "arm64", intel: "x64"
 
   version "${version}"
-  sha256 arm: "${arm}",
+  sha256 arm:   "${arm}",
          intel: "${intel}"
 
   url "${homepage}/releases/download/v#{version}/MockForge-mac-#{arch}.dmg"
@@ -66,22 +93,11 @@ function renderCask({ version, owner, repo, hashes }) {
   desc "Visual mock server manager for MockServer"
   homepage "${homepage}"
 
-  app "MockForge.app"
-
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
-
-  caveats <<~EOS
-${caveats}
-  EOS
-end
-`;
+${caskTail()}`);
   }
 
   if (arm) {
-    return `cask "mockforge" do
+    return normalizeNewlines(`cask "mockforge" do
   version "${version}"
   sha256 "${arm}"
 
@@ -90,20 +106,7 @@ end
   desc "Visual mock server manager for MockServer"
   homepage "${homepage}"
 
-  depends_on arch: :arm64
-
-  app "MockForge.app"
-
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
-
-  caveats <<~EOS
-${caveats}
-  EOS
-end
-`;
+${caskTail('  depends_on arch: :arm64')}`);
   }
 
   throw new Error('No macOS arm64 DMG found to generate the Homebrew cask');
@@ -131,8 +134,12 @@ function main() {
     repo: args.repo,
     hashes,
   });
-  writeFileSync(args.out, contents, 'utf8');
+  writeFileSync(args.out, contents.replace(/\r\n/g, '\n'), 'utf8');
   console.log(`Wrote ${args.out}`);
 }
 
-main();
+module.exports = { renderCask };
+
+if (require.main === module) {
+  main();
+}

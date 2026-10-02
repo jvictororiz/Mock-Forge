@@ -11,4 +11,4 @@ export const WINDOWS_SETUP_URL = `${downloadBase}/MockForge-win-x64-setup.exe`;
 export const MAC_ARM_DMG_URL = `${downloadBase}/MockForge-mac-arm64.dmg`;
 export const MAC_X64_DMG_URL = `${downloadBase}/MockForge-mac-x64.dmg`;
 
-export const BREW_INSTALL = `brew install --cask ${downloadBase}/mockforge.rb`;
+export const BREW_INSTALL = 'brew install --cask mockforge';

@@ -7,14 +7,10 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const { checking, applying, progress, result, check, apply } = useUpdateStore();
 
-  const handleCheck = (announceUpToDate = false) => {
+  const handleCheck = () => {
     void check().then((next) => {
       if (next?.error) {
         showToast(t.settings.updateFailed(next.error), 'error');
-        return;
-      }
-      if (announceUpToDate && next && !next.available) {
-        showToast(t.settings.upToDate, 'success');
       }
     });
   };
@@ -33,30 +29,25 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
   };
 
   if (compact) {
-    const available = !!result?.available;
+    if (!result?.available && !applying) return null;
+
     const label = applying
       ? (progress != null ? t.settings.downloadingUpdate(progress) : t.settings.updating)
-      : checking
-        ? t.settings.checkingUpdates
-        : t.settings.headerUpdate;
+      : t.settings.headerUpdate;
 
     return (
       <button
         type="button"
-        onClick={available ? handleApply : () => handleCheck(true)}
-        disabled={checking || applying}
+        onClick={handleApply}
+        disabled={applying}
         style={{
           ...styles.headerBtn,
-          ...(available ? styles.headerBtnReady : null),
-          opacity: checking || applying ? 0.85 : 1,
+          ...styles.headerBtnReady,
+          opacity: applying ? 0.85 : 1,
         }}
-        title={
-          available
-            ? t.settings.updateAvailable(result?.latestVersion || '')
-            : t.settings.checkUpdates
-        }
+        title={t.settings.updateAvailable(result?.latestVersion || '')}
       >
-        {available ? <span style={styles.headerDot} aria-hidden /> : null}
+        <span style={styles.headerDot} aria-hidden />
         {label}
       </button>
     );

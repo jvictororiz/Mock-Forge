@@ -9,6 +9,7 @@ import { ConsumerSelector } from './ConsumerSelector';
 import { EnvironmentSelector } from './EnvironmentSelector';
 import { UpdateControls } from './UpdateControls';
 import appIcon from '../assets/app-icon.png';
+import packageJson from '../../package.json';
 import { Tab, TabBar } from './TabBar';
 
 export function Header() {
@@ -84,6 +85,9 @@ export function Header() {
     <header style={styles.header} className="app-header">
       <div style={styles.inner}>
         <div style={styles.left}>
+        <span style={styles.version} title={t.settings.version}>
+          v{packageJson.version}
+        </span>
         <TabBar variant="pill">
           <Tab active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')}>
             {t.app.traffic}
@@ -177,8 +181,19 @@ const styles: Record<string, React.CSSProperties> = {
   left: {
     display: 'flex',
     alignItems: 'center',
+    gap: '10px',
     justifySelf: 'start',
     ...noDrag,
+  },
+  version: {
+    flexShrink: 0,
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '12px',
+    fontWeight: 500,
+    letterSpacing: '0.2px',
+    lineHeight: 1,
+    cursor: 'default',
   },
   center: {
     display: 'flex',

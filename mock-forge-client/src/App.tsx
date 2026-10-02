@@ -4,7 +4,6 @@ import { TrafficLayout } from './components/TrafficLayout';
 import { SettingsView } from './components/SettingsView';
 import { TabLoadingFallback } from './components/TabLoadingFallback';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { StatusBar } from './components/StatusBar';
 import { Toast } from './components/Toast';
 import { useAppStore } from './stores/appStore';
 import { useUpdateStore } from './stores/updateStore';
@@ -134,7 +133,6 @@ export default function App() {
           )}
         </ErrorBoundary>
       </main>
-      <StatusBar />
       <Toast />
     </div>
   );

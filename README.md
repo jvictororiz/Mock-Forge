@@ -13,11 +13,13 @@ This repository is a monorepo:
 
 Installers ship on [GitHub Releases](https://github.com/jvictororiz/Mock-Forge/releases). The website and the in-app updater both point there.
 
-macOS via Homebrew (Apple Silicon):
+macOS via Homebrew, after the cask pull request is merged:
 
 ```bash
-brew install --cask https://github.com/jvictororiz/Mock-Forge/releases/latest/download/mockforge.rb
+brew install --cask mockforge
 ```
+
+The release workflow opens that pull request on [Homebrew/homebrew-cask](https://github.com/Homebrew/homebrew-cask). It needs a classic personal access token with the `public_repo` scope stored as the `HOMEBREW_GITHUB_API_TOKEN` repository secret.
 
 ## Develop the app
 
