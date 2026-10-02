@@ -52,9 +52,6 @@ export type Messages = {
     brewHint: string;
     brewUpgradeHint: string;
     gatekeeper: string;
-    chooseMac: string;
-    detecting: string;
-    recommended: string;
     unavailable: string;
     copied: string;
   };
@@ -196,9 +193,6 @@ export const messages: Messages = {
       'Depois de instalar pelo Homebrew, atualize com brew upgrade --cask --greedy jvictororiz/homebrew-mockforge/mockforge, ou pelo botão Atualizar dentro do app.',
     gatekeeper:
       'Se o macOS bloquear a abertura do app, use Abrir com o botão direito ou permita em Privacidade e Segurança. O app ainda não é notarizado pela Apple.',
-    chooseMac: 'Escolha a opção para o seu Mac',
-    detecting: 'Identificando seu sistema…',
-    recommended: 'Sugerido para este dispositivo',
     unavailable:
       'A release ainda está sendo gerada. Os downloads ficam disponíveis assim que o build terminar.',
     copied: 'Copiado',

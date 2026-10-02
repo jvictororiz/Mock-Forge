@@ -21,12 +21,10 @@ const { t } = Astro.props;
     <div
       class="panel reveal"
       data-download-panel
-      data-recommended={t.download.recommended}
       data-unavailable={t.download.unavailable}
       data-copied={t.download.copied}
-      data-choose-mac={t.download.chooseMac}
     >
-      <p class="status" data-download-status>{t.download.detecting}</p>
+      <p class="status" data-download-status hidden></p>
 
       <div class="actions" data-os-actions>
         <a
@@ -64,7 +62,7 @@ const { t } = Astro.props;
           </a>
           <button
             type="button"
-            class="btn btn-accent-soft"
+            class="btn btn-ghost"
             data-copy-brew
             data-brew={BREW_INSTALL}
           >
@@ -88,25 +86,10 @@ const { t } = Astro.props;
   const status = document.querySelector('[data-download-status]');
   const macOptions = document.querySelector('[data-mac-options]');
   const selectMacBtn = document.querySelector('[data-select-mac]');
-  const recommendedLabel = panel?.getAttribute('data-recommended') ?? 'Sugerido para este dispositivo';
   const unavailableLabel =
     panel?.getAttribute('data-unavailable') ??
     'A release ainda está sendo gerada. Os downloads ficam disponíveis assim que o build terminar.';
   const copiedLabel = panel?.getAttribute('data-copied') ?? 'Copiado';
-  const chooseMacLabel = panel?.getAttribute('data-choose-mac') ?? 'Escolha a opção para o seu Mac';
-
-  function detectPlatform() {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('windows')) return 'windows';
-    if (ua.includes('mac')) return 'mac';
-    return 'other';
-  }
-
-  function detectMacArch() {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('intel')) return 'x64';
-    return 'arm64';
-  }
 
   function latestDownloadUrl(assetName) {
     return `https://github.com/jvictororiz/Mock-Forge/releases/latest/download/${assetName}`;
@@ -143,17 +126,6 @@ const { t } = Astro.props;
     return false;
   }
 
-  function highlight(el, on) {
-    if (!el) return;
-    if (on) {
-      el.classList.remove('btn-ghost');
-      el.classList.add('btn-primary');
-    } else {
-      el.classList.add('btn-ghost');
-      el.classList.remove('btn-primary');
-    }
-  }
-
   function showMacOptions(open) {
     if (!macOptions) return;
     macOptions.hidden = !open;
@@ -178,8 +150,6 @@ const { t } = Astro.props;
   }
 
   async function hydrateDownloads() {
-    const platform = detectPlatform();
-    const macArch = detectMacArch();
     const windowsBtn = document.querySelector('[data-download="windows"]');
     const armBtn = document.querySelector('[data-download="mac-arm64"]');
     const intelBtn = document.querySelector('[data-download="mac-x64"]');
@@ -212,47 +182,11 @@ const { t } = Astro.props;
       return;
     }
 
-    highlight(windowsBtn, false);
-    highlight(selectMacBtn, false);
-    highlight(armBtn, false);
-    highlight(intelBtn, false);
-
-    if (platform === 'windows') {
-      showMacOptions(false);
-      highlight(windowsBtn, true);
-      if (status) {
-        status.hidden = false;
-        status.textContent = recommendedLabel;
-        status.classList.remove('is-waiting');
-      }
-      return;
-    }
-
-    if (platform === 'mac') {
-      showMacOptions(true);
-      highlight(selectMacBtn, true);
-      highlight(macArch === 'x64' ? intelBtn : armBtn, true);
-      if (status) {
-        status.hidden = false;
-        status.textContent = recommendedLabel;
-        status.classList.remove('is-waiting');
-      }
-      return;
-    }
-
-    showMacOptions(false);
     if (status) status.hidden = true;
   }
 
   selectMacBtn?.addEventListener('click', () => {
     showMacOptions(true);
-    highlight(selectMacBtn, true);
-    highlight(document.querySelector('[data-download="windows"]'), false);
-    if (status) {
-      status.hidden = false;
-      status.textContent = chooseMacLabel;
-      status.classList.remove('is-waiting');
-    }
   });
 
   const brewBtn = document.querySelector('[data-copy-brew]');
