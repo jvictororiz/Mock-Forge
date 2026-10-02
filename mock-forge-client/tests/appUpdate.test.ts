@@ -36,7 +36,8 @@ describe('brewUpgradeScript', () => {
     expect(script).toContain("'/opt/homebrew/bin/brew' upgrade --cask --greedy 'mockforge'");
     expect(script).toContain("target '0.7.20'");
     expect(script).toContain('jvictororiz/homebrew-mockforge');
-    expect(script.indexOf('upgrade --cask --greedy')).toBeLessThan(script.indexOf('falling back to the release cask'));
+    expect(script).not.toContain('uninstall');
+    expect(script).toContain('app missing, installing from the tap');
   });
 });
 

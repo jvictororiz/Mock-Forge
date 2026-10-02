@@ -189,16 +189,20 @@ echo "brew upgrade --cask --greedy"
 ${brew} upgrade --cask --greedy ${cask} || echo "upgrade failed: \$?"
 current="\$(installed_version)"
 echo "installed after upgrade: \${current:-none}"
-if [ -z "\$current" ] || version_lt "\$current" ${version}; then
-  echo "falling back to the release cask"
+if [ -n "\$current" ] && version_lt "\$current" ${version} && [ -d "\$repo" ]; then
+  echo "tap is still behind, updating the cask file"
   curl -fL --retry 3 -A Homebrew ${caskUrl} -o ${caskPath} || echo "curl failed: \$?"
   if grep -q 'cask "mockforge"' ${caskPath}; then
-    ${brew} uninstall --cask --force ${cask} || echo "uninstall failed: \$?"
-    ${brew} install --cask ${caskPath} || echo "install failed: \$?"
+    cp ${caskPath} "\$repo/Casks/mockforge.rb" || echo "copy failed: \$?"
+    ${brew} upgrade --cask --greedy ${cask} || echo "second upgrade failed: \$?"
   else
     echo "release cask download was not a cask"
   fi
-  echo "installed after fallback: \$(installed_version)"
+  echo "installed after cask file update: \$(installed_version)"
+fi
+if [ ! -d "/Applications/MockForge.app" ] && [ ! -d "\$HOME/Applications/MockForge.app" ]; then
+  echo "app missing, installing from the tap"
+  ${brew} install --cask ${tap}/${cask} || ${brew} reinstall --cask ${cask} || echo "restore failed: \$?"
 fi
 
 open_newest() {
