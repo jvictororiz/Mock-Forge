@@ -173,14 +173,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Open Homebrew cask pull request
+      - name: Publish Homebrew tap
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
         run: |
           if [ -z "$HOMEBREW_GITHUB_API_TOKEN" ]; then
             echo "Missing secret HOMEBREW_GITHUB_API_TOKEN."
             echo "Create a classic GitHub PAT with the public_repo scope and add it to this repository."
-            echo "The token is used to fork Homebrew/homebrew-cask and open the cask pull request."
+            echo "The token pushes the cask to jvictororiz/homebrew-mockforge."
             exit 1
           fi
           node mock-forge-client/scripts/publish-homebrew-cask.js \

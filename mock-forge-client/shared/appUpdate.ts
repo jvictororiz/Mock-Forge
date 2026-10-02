@@ -45,8 +45,10 @@ export function githubApiLatestReleaseUrl(): string {
   return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 }
 
+export const HOMEBREW_TAP = 'jvictororiz/homebrew-mockforge';
+
 export function brewInstallCommand(): string {
-  return `brew install --cask ${CASK_TOKEN}`;
+  return `brew install --cask ${HOMEBREW_TAP}/${CASK_TOKEN}`;
 }
 
 export function stripVersionPrefix(version: string): string {

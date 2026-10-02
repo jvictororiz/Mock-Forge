@@ -38,10 +38,10 @@ In the app: **Settings → System → Check for updates**. A header **Update** b
 | macOS (DMG) | Opens the disk image — drag to Applications |
 
 ```bash
-brew install --cask mockforge
+brew install --cask jvictororiz/homebrew-mockforge/mockforge
 ```
 
-That command works once Homebrew merges the cask pull request opened at the end of this workflow. The job uses the `HOMEBREW_GITHUB_API_TOKEN` secret (classic PAT, `public_repo` scope).
+The release workflow pushes that cask to `jvictororiz/homebrew-mockforge`. The job uses the `HOMEBREW_GITHUB_API_TOKEN` secret (classic PAT, `public_repo` scope).
 
 Environments and sessions stay in `~/.mockforge`.
 
