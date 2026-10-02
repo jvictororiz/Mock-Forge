@@ -118,6 +118,116 @@ export function brewInstallCommand(): string {
   return `brew install --cask ${HOMEBREW_TAP}/${CASK_TOKEN}`;
 }
 
+export function brewUpgradeScript(input: {
+  brewPath: string;
+  pid: number;
+  version: string;
+  caskUrl: string | null;
+  caskPath: string;
+}): string {
+  if (!Number.isInteger(input.pid) || input.pid < 0) {
+    throw new Error('Invalid process id for the Homebrew upgrade script');
+  }
+  const brew = shellQuote(input.brewPath);
+  const version = shellQuote(stripVersionPrefix(input.version));
+  const tap = shellQuote(HOMEBREW_TAP);
+  const cask = shellQuote(CASK_TOKEN);
+  const caskUrl = shellQuote(input.caskUrl ?? '');
+  const caskPath = shellQuote(input.caskPath);
+  return `#!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_ENV_HINTS=1
+export HOMEBREW_NO_ANALYTICS=1
+log="\${HOME}/Library/Logs/MockForge/update.log"
+mkdir -p "\$(dirname "\$log")" 2>/dev/null || true
+exec >>"\$log" 2>&1
+echo "---- \$(date) target ${version} ----"
+while kill -0 ${input.pid} 2>/dev/null; do
+  sleep 0.2
+done
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if ! pgrep -f "/MockForge.app/Contents/MacOS/" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.3
+done
+sleep 0.4
+
+installed_version() {
+  ${brew} list --cask --versions ${cask} 2>/dev/null | awk '{print \$2}' | head -n1
+}
+
+version_lt() {
+  local IFS=.
+  local i x y
+  local -a left right
+  read -r -a left <<< "\$1"
+  read -r -a right <<< "\$2"
+  for i in 0 1 2; do
+    x="\${left[i]:-0}"
+    y="\${right[i]:-0}"
+    if ((10#\$x < 10#\$y)); then return 0; fi
+    if ((10#\$x > 10#\$y)); then return 1; fi
+  done
+  return 1
+}
+
+echo "installed before: \$(installed_version)"
+repo="\$(${brew} --repository ${tap} 2>/dev/null || true)"
+if [ ! -d "\$repo/.git" ]; then
+  echo "tapping ${tap}"
+  ${brew} tap ${tap} || echo "tap failed: \$?"
+  repo="\$(${brew} --repository ${tap} 2>/dev/null || true)"
+fi
+if [ -d "\$repo/.git" ]; then
+  echo "updating tap \$repo"
+  git -C "\$repo" fetch --quiet --depth 1 origin main || echo "fetch failed: \$?"
+  git -C "\$repo" reset --quiet --hard origin/main || echo "reset failed: \$?"
+fi
+echo "brew upgrade --cask --greedy"
+${brew} upgrade --cask --greedy ${cask} || echo "upgrade failed: \$?"
+current="\$(installed_version)"
+echo "installed after upgrade: \${current:-none}"
+if [ -z "\$current" ] || version_lt "\$current" ${version}; then
+  echo "falling back to the release cask"
+  curl -fL --retry 3 -A Homebrew ${caskUrl} -o ${caskPath} || echo "curl failed: \$?"
+  if grep -q 'cask "mockforge"' ${caskPath}; then
+    ${brew} uninstall --cask --force ${cask} || echo "uninstall failed: \$?"
+    ${brew} install --cask ${caskPath} || echo "install failed: \$?"
+  else
+    echo "release cask download was not a cask"
+  fi
+  echo "installed after fallback: \$(installed_version)"
+fi
+
+open_newest() {
+  local best="" best_ver="" candidate ver
+  for candidate in "/Applications/MockForge.app" "\$HOME/Applications/MockForge.app"; do
+    if [ ! -d "\$candidate" ]; then
+      continue
+    fi
+    ver="\$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "\$candidate/Contents/Info.plist" 2>/dev/null || true)"
+    if [ -z "\$best" ] || { [ -n "\$ver" ] && version_lt "\$best_ver" "\$ver"; }; then
+      best="\$candidate"
+      best_ver="\$ver"
+    fi
+  done
+  echo "opening \${best:-none} (\${best_ver:-unknown})"
+  if [ -n "\$best" ]; then
+    /usr/bin/open "\$best"
+    return \$?
+  fi
+  /usr/bin/open -b com.mockforge.app
+}
+open_newest || echo "open failed: \$?"
+`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 export function stripVersionPrefix(version: string): string {
   return version.trim().replace(/^v/i, '');
 }

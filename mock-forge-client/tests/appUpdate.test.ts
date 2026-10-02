@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  brewUpgradeScript,
   compareVersions,
   macDmgAssetName,
   macDmgAssetNameLegacy,
@@ -20,6 +21,23 @@ const release = (tag: string, assetNames: string[]): GithubRelease => ({
     name,
     browser_download_url: `https://github.com/jvictororiz/Mock-Forge/releases/download/${tag}/${name}`,
   })),
+});
+
+describe('brewUpgradeScript', () => {
+  it('asks Homebrew to upgrade the installed cask before reopening the app', () => {
+    const script = brewUpgradeScript({
+      brewPath: '/opt/homebrew/bin/brew',
+      pid: 42,
+      version: 'v0.7.20',
+      caskUrl: 'https://github.com/jvictororiz/Mock-Forge/releases/download/v0.7.20/mockforge.rb',
+      caskPath: '/tmp/mockforge-update.rb',
+    });
+
+    expect(script).toContain("'/opt/homebrew/bin/brew' upgrade --cask --greedy 'mockforge'");
+    expect(script).toContain("target '0.7.20'");
+    expect(script).toContain('jvictororiz/homebrew-mockforge');
+    expect(script.indexOf('upgrade --cask --greedy')).toBeLessThan(script.indexOf('falling back to the release cask'));
+  });
 });
 
 describe('parseBrewLivecheck', () => {

@@ -9,6 +9,7 @@ import {
   type GithubRelease,
   CASK_TOKEN,
   brewInstallCommand,
+  brewUpgradeScript,
   githubLatestReleasePageUrl,
   parseBrewLivecheck,
   releaseFromTag,
@@ -96,8 +97,11 @@ export async function applyAppUpdate(
   }
 
   if (info.method === 'mac-brew') {
+    if (!info.latestVersion) {
+      return { success: false, error: 'Homebrew version is missing' };
+    }
     await prepareToReplace?.();
-    startBrewUpgradeAndQuit(info.caskUrl);
+    startBrewUpgradeAndQuit(info.latestVersion, info.caskUrl);
     return { success: true };
   }
 
@@ -256,44 +260,21 @@ function resolveBrewPath(): string | null {
   return resolveCommandPath('brew', getShellEnv().PATH);
 }
 
-function startBrewUpgradeAndQuit(caskUrl: string | null): void {
+function startBrewUpgradeAndQuit(version: string, caskUrl: string | null): void {
   const brew = resolveBrewPath();
   if (!brew) {
     throw new Error('Homebrew was not found');
   }
-  if (!caskUrl) {
-    throw new Error('Homebrew cask is missing from the release');
-  }
 
   const scriptPath = join(tmpdir(), `mockforge-brew-upgrade-${Date.now()}.sh`);
   const caskPath = join(tmpdir(), 'mockforge-update.rb');
-  const pid = process.pid;
-  const script = `#!/bin/bash
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-log="\${HOME}/Library/Logs/MockForge/update.log"
-mkdir -p "\$(dirname "\$log")" 2>/dev/null || true
-exec >>"\$log" 2>&1
-echo "---- \$(date) ----"
-while kill -0 ${pid} 2>/dev/null; do
-  sleep 0.2
-done
-sleep 0.4
-curl -fsSL -A MockForge ${shellQuote(caskUrl)} -o ${shellQuote(caskPath)} || echo "curl failed: \$?"
-${shellQuote(brew)} install --cask --force ${shellQuote(caskPath)} || echo "brew failed: \$?"
-sleep 1
-open_mockforge() {
-  local candidate
-  for candidate in "/Applications/MockForge.app" "\$HOME/Applications/MockForge.app"; do
-    if [ -d "\$candidate" ]; then
-      /usr/bin/open "\$candidate" && return 0
-    fi
-  done
-  /usr/bin/open -b com.mockforge.app && return 0
-  /usr/bin/open -a MockForge && return 0
-  return 1
-}
-open_mockforge || echo "open failed: \$?"
-`;
+  const script = brewUpgradeScript({
+    brewPath: brew,
+    pid: process.pid,
+    version,
+    caskUrl,
+    caskPath,
+  });
   writeFileSync(scriptPath, script, 'utf8');
   chmodSync(scriptPath, 0o755);
 
@@ -337,10 +318,6 @@ function quitSoon(): void {
   setTimeout(() => {
     app.quit();
   }, 400);
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 function cmdQuote(value: string): string {
