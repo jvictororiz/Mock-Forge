@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'child_process';
-import { app, net, shell } from 'electron';
+import { app, shell } from 'electron';
 import { chmodSync, writeFileSync } from 'fs';
 import { get as httpsGet } from 'https';
 import { tmpdir } from 'os';
@@ -127,24 +127,9 @@ const RELEASE_HEADERS = {
   'X-GitHub-Api-Version': '2022-11-28',
 };
 
-async function fetchLatestRelease(): Promise<GithubRelease> {
-  const url = githubApiLatestReleaseUrl();
-  try {
-    return await readReleaseResponse(await net.fetch(url, { headers: RELEASE_HEADERS }));
-  } catch (error) {
-    if (!isTransportFailure(error)) throw error;
-    return fetchLatestReleaseWithHttps(url);
-  }
-}
-
-async function readReleaseResponse(response: Response): Promise<GithubRelease> {
-  if (response.status === 404) {
-    throw new Error('No GitHub release published yet');
-  }
-  if (!response.ok) {
-    throw new Error(`GitHub API HTTP ${response.status}`);
-  }
-  return response.json() as Promise<GithubRelease>;
+function fetchLatestRelease(): Promise<GithubRelease> {
+  // Node's HTTPS client sends User-Agent. Electron's net.fetch drops it, and GitHub answers 403.
+  return fetchLatestReleaseWithHttps(githubApiLatestReleaseUrl());
 }
 
 function fetchLatestReleaseWithHttps(url: string, redirects = 0): Promise<GithubRelease> {
@@ -187,11 +172,6 @@ function fetchLatestReleaseWithHttps(url: string, redirects = 0): Promise<Github
     });
     request.on('error', reject);
   });
-}
-
-function isTransportFailure(error: unknown): boolean {
-  const message = networkErrorMessage(error);
-  return /fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|certificate|socket/i.test(message);
 }
 
 function networkErrorMessage(error: unknown): string {
