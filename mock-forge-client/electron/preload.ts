@@ -91,7 +91,6 @@ const api: MockForgeAPI = {
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
     apply: () => ipcRenderer.invoke('updates:apply'),
-    openUrl: (url) => ipcRenderer.invoke('updates:open-url', url),
     onProgress: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, percent: number | null) => callback(percent);
       ipcRenderer.on('updates:progress', handler);

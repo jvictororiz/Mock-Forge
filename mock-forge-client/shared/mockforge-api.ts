@@ -117,7 +117,6 @@ export interface MockForgeAPI {
   updates: {
     check: () => Promise<AppUpdateCheckResult>;
     apply: () => Promise<{ success: boolean; error?: string; openedReleasePage?: boolean }>;
-    openUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
     onProgress: (callback: (percent: number | null) => void) => () => void;
   };
   platform: NodeJS.Platform;

@@ -85,7 +85,6 @@ export type Translation = {
     updateMethodDmg: string;
     updateDevHint: string;
     updateNoPackage: string;
-    openRelease: string;
     brewInstallHint: string;
     updateFailed: (error: string) => string;
     updateOpenedDmg: string;

@@ -36,7 +36,7 @@ import {
   setupClient,
 } from './services/McpIntegrationService';
 import type { McpClientId } from '../shared/mcpTypes';
-import { applyAppUpdate, checkForAppUpdate, openReleaseUrl } from './services/AppUpdateService';
+import { applyAppUpdate, checkForAppUpdate } from './services/AppUpdateService';
 
 function getTraceId(request: CapturedRequest): string | undefined {
   return request.headers[MOCKFORGE_REQUEST_ID_HEADER]
@@ -1266,8 +1266,6 @@ ipcMain.handle('mcp:get-manual-config', () => getManualConfig());
 ipcMain.handle('mcp:is-ready', () => canExecuteMcpServer());
 
 ipcMain.handle('updates:check', () => checkForAppUpdate());
-
-ipcMain.handle('updates:open-url', (_e, url: string) => openReleaseUrl(url));
 
 ipcMain.handle('updates:apply', async () => {
   try {

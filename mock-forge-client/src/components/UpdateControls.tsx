@@ -104,19 +104,6 @@ export function UpdateControls({ compact = false }: { compact?: boolean }) {
             {applying ? t.settings.updating : t.settings.updateNow}
           </button>
         ) : null}
-        {result?.releaseUrl ? (
-          <button
-            type="button"
-            style={styles.linkBtn}
-            onClick={() => {
-              if (result.releaseUrl) {
-                void window.mockforge.updates.openUrl(result.releaseUrl);
-              }
-            }}
-          >
-            {t.settings.openRelease}
-          </button>
-        ) : null}
       </div>
 
       {window.mockforge.platform === 'darwin' && result?.brewInstallCommand ? (
@@ -170,13 +157,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    fontSize: '12px',
-    fontWeight: 600,
-  },
-  linkBtn: {
-    padding: '8px 10px',
-    background: 'transparent',
-    color: 'var(--text-secondary)',
     fontSize: '12px',
     fontWeight: 600,
   },

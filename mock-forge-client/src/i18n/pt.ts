@@ -88,7 +88,6 @@ export const pt: Translation = {
     updateMethodDmg: 'A imagem de disco vai abrir. Arraste o MockForge para Aplicativos para substituir esta cópia. O Gatekeeper pode pedir para abrir mesmo assim.',
     updateDevHint: 'Build de desenvolvimento: a página da release no GitHub será aberta em vez de instalar.',
     updateNoPackage: 'Nenhum pacote encontrado para este sistema. Abra a release no GitHub para baixar manualmente.',
-    openRelease: 'Abrir página da release',
     brewInstallHint: 'Para atualizar pelo Homebrew da próxima vez, instale com:',
     updateFailed: (error) => `Falha ao atualizar: ${error}`,
     updateOpenedDmg: 'Imagem de disco aberta. Substitua o app em Aplicativos e reabra o MockForge.',

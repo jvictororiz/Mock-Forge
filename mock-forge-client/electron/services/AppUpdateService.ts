@@ -10,7 +10,6 @@ import {
   type GithubRelease,
   brewInstallCommand,
   githubApiLatestReleaseUrl,
-  githubRepoUrl,
   resolveUpdatePlan,
 } from '../../shared/appUpdate';
 import { downloadFile } from '../utils/downloadFile';
@@ -119,14 +118,6 @@ export async function applyAppUpdate(
   await downloadFile(info.downloadUrl, dest, onProgress);
   await prepareToReplace?.();
   startWindowsInstallAndQuit(dest);
-  return { success: true };
-}
-
-export async function openReleaseUrl(url: string): Promise<{ success: boolean; error?: string }> {
-  if (!url.startsWith(`${githubRepoUrl()}/`)) {
-    return { success: false, error: 'Unexpected release URL' };
-  }
-  await shell.openExternal(url);
   return { success: true };
 }
 
