@@ -232,7 +232,7 @@ function serverStatusEqual(left: ServerStatus, right: ServerStatus): boolean {
     });
 }
 
-type Tab = 'traffic' | 'editor' | 'settings' | 'environments' | 'sessions';
+type Tab = 'traffic' | 'editor' | 'settings' | 'environments' | 'sessions' | 'feedback';
 type SettingsTab = 'server' | 'devices' | 'mcp' | 'language';
 type EditorTab = 'request' | 'response';
 

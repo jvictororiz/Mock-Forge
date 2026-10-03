@@ -1,3 +1,5 @@
+import type { FeedbackErrorCode } from '../../shared/githubFeedback';
+
 export type Locale = 'pt' | 'en';
 
 export type Translation = {
@@ -8,6 +10,7 @@ export type Translation = {
     environment: string;
     history: string;
     recordings: string;
+    feedback: string;
   };
   server: {
     runningOn: (port: number) => string;
@@ -466,6 +469,27 @@ export type Translation = {
     included: string;
     closeBlock: string;
     editBlock: string;
+  };
+  feedback: {
+    pageTitle: string;
+    pageSubtitle: string;
+    signIn: string;
+    signInWaiting: string;
+    userCodeHint: string;
+    openGitHub: string;
+    signedInAs: (login: string) => string;
+    signOut: string;
+    star: string;
+    starred: string;
+    starSignInAgain: string;
+    fieldTitle: string;
+    fieldDescription: string;
+    submit: string;
+    submitting: string;
+    submitted: (number: number) => string;
+    openIssue: string;
+    sendAnother: string;
+    errors: Record<FeedbackErrorCode, string>;
   };
   common: {
     cancel: string;

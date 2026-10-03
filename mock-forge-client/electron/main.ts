@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain, dialog, screen, nativeImage, clipboard, Menu } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, screen, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import { arch, release, tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { MockServerProcessManager } from './services/MockServerProcessManager';
 import { MockServerAdapter, routeToExpectation, upsertRouteFromCapturedRequest, createFullMockRouteFromCaptured, createFullMockRoutesFromCaptured, environmentToInterceptRoutes, environmentToProxyRequestMocks } from './services/MockServerAdapter';
@@ -37,6 +37,15 @@ import {
 } from './services/McpIntegrationService';
 import type { McpClientId } from '../shared/mcpTypes';
 import { applyAppUpdate, checkForAppUpdate } from './services/AppUpdateService';
+import { GitHubFeedbackClient } from './services/GitHubFeedbackService';
+import { loadGitHubFeedbackAuth, saveGitHubFeedbackAuth } from './services/githubFeedbackAuthStore';
+import {
+  GITHUB_FEEDBACK_CLIENT_ID,
+  GITHUB_FEEDBACK_OWNER,
+  GITHUB_FEEDBACK_REPO,
+  interruptibleSleep,
+} from '../shared/githubFeedback';
+import packageJson from '../package.json';
 
 function getTraceId(request: CapturedRequest): string | undefined {
   return request.headers[MOCKFORGE_REQUEST_ID_HEADER]
@@ -629,6 +638,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', async () => {
+  githubFeedback.cancelSignIn();
   stopTrafficPolling();
   stopAdbPolling();
   await scrcpyMirrorService.stop();
@@ -639,6 +649,7 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('before-quit', async () => {
+  githubFeedback.cancelSignIn();
   stopTrafficPolling();
   stopAdbPolling();
   await scrcpyMirrorService.stop();
@@ -1266,6 +1277,56 @@ ipcMain.handle('mcp:get-manual-config', () => getManualConfig());
 ipcMain.handle('mcp:is-ready', () => canExecuteMcpServer());
 
 ipcMain.handle('updates:check', () => checkForAppUpdate());
+
+const githubFeedback = new GitHubFeedbackClient({
+  clientId: process.env.MOCKFORGE_GITHUB_CLIENT_ID || GITHUB_FEEDBACK_CLIENT_ID,
+  owner: GITHUB_FEEDBACK_OWNER,
+  repo: GITHUB_FEEDBACK_REPO,
+  fetchImpl: fetch,
+  loadAuth: loadGitHubFeedbackAuth,
+  saveAuth: saveGitHubFeedbackAuth,
+  openExternal: (url) => shell.openExternal(url),
+  copyText: (text) => clipboard.writeText(text),
+  sleep: interruptibleSleep,
+  now: () => Date.now(),
+  context: () => ({
+    appVersion: packageJson.version,
+    electronVersion: process.versions.electron ?? 'unknown',
+    os: {
+      platform: process.platform,
+      release: release(),
+      arch: arch(),
+    },
+  }),
+});
+
+ipcMain.handle('feedback:status', () => githubFeedback.status());
+
+ipcMain.handle('feedback:sign-in', () => githubFeedback.beginSignIn((event) => {
+  if (!mainWindow) return;
+  if (event.type === 'success') {
+    mainWindow.webContents.send('feedback:signed-in', event.status);
+    return;
+  }
+  mainWindow.webContents.send('feedback:sign-in-failed', {
+    error: event.error,
+    detail: event.detail,
+  });
+}));
+
+ipcMain.handle('feedback:cancel-sign-in', () => githubFeedback.cancelSignIn());
+
+ipcMain.handle('feedback:sign-out', () => githubFeedback.signOut());
+
+ipcMain.handle('feedback:submit', (_e, input: { title: string; description: string; locale: string }) => {
+  return githubFeedback.submit(input);
+});
+
+ipcMain.handle('feedback:open', (_e, url: string) => githubFeedback.open(url));
+
+ipcMain.handle('feedback:star-state', () => githubFeedback.starState());
+
+ipcMain.handle('feedback:set-starred', (_e, starred: boolean) => githubFeedback.setStarred(starred));
 
 ipcMain.handle('updates:apply', async () => {
   try {

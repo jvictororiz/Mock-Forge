@@ -4,6 +4,7 @@ import type { ConsumerPlatform } from './consumerUtils';
 import type { EnvironmentSnapshot, TrafficSession, TrafficSessionMeta } from './sessionTypes';
 import type { SessionComparison, CompareOptions } from './comparisonTypes';
 import type { McpClientId, McpClientInfo, McpIntegrationResult, McpManualConfig } from './mcpTypes';
+import type { FeedbackErrorCode, GitHubFeedbackStatus } from './githubFeedback';
 
 export interface MockForgeAPI {
   server: {
@@ -118,6 +119,30 @@ export interface MockForgeAPI {
     check: () => Promise<AppUpdateCheckResult>;
     apply: () => Promise<{ success: boolean; error?: string; openedReleasePage?: boolean }>;
     onProgress: (callback: (percent: number | null) => void) => () => void;
+  };
+  feedback: {
+    status: () => Promise<GitHubFeedbackStatus>;
+    signIn: () => Promise<
+      | { ok: true; userCode: string; verificationUri: string; expiresIn: number }
+      | { ok: false; error: FeedbackErrorCode; detail?: string }
+    >;
+    cancelSignIn: () => Promise<GitHubFeedbackStatus>;
+    signOut: () => Promise<GitHubFeedbackStatus>;
+    submit: (input: { title: string; description: string; locale: string }) => Promise<
+      | { ok: true; number: number; url: string }
+      | { ok: false; error: FeedbackErrorCode; detail?: string }
+    >;
+    open: (url: string) => Promise<boolean>;
+    starState: () => Promise<
+      | { ok: true; starred: boolean; count?: number }
+      | { ok: false; error: 'unauthenticated' | 'forbidden' | 'network' | 'unknown' }
+    >;
+    setStarred: (starred: boolean) => Promise<
+      | { ok: true; starred: boolean; count?: number }
+      | { ok: false; error: 'unauthenticated' | 'forbidden' | 'network' | 'unknown' }
+    >;
+    onSignedIn: (callback: (status: GitHubFeedbackStatus) => void) => () => void;
+    onSignInFailed: (callback: (failure: { error: FeedbackErrorCode; detail?: string }) => void) => () => void;
   };
   platform: NodeJS.Platform;
 }

@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect } from 'react';
 import { Header } from './components/Header';
 import { TrafficLayout } from './components/TrafficLayout';
 import { SettingsView } from './components/SettingsView';
+import { FeedbackView } from './components/FeedbackView';
 import { EnvironmentView } from './components/EnvironmentView';
 import { TabLoadingFallback } from './components/TabLoadingFallback';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -133,6 +134,7 @@ export default function App() {
               <HistoryLayout />
             </Suspense>
           )}
+          {activeTab === 'feedback' && <FeedbackView />}
         </ErrorBoundary>
       </main>
       <Toast />

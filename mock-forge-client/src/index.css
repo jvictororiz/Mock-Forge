@@ -203,7 +203,7 @@ mark.json-search-active {
   margin-bottom: 0;
   border-bottom: 2px solid transparent;
   border-radius: var(--radius);
-  padding: 6px 16px;
+  padding: 6px 12px;
   color: var(--text-secondary);
 }
 

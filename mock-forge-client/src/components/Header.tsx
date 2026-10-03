@@ -104,6 +104,9 @@ export function Header() {
           <Tab active={activeTab === 'environments'} onClick={() => setActiveTab('environments')}>
             {t.app.environment}
           </Tab>
+          <Tab active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')}>
+            {t.app.feedback}
+          </Tab>
         </TabBar>
         </div>
 

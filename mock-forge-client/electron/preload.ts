@@ -97,6 +97,26 @@ const api: MockForgeAPI = {
       return () => ipcRenderer.removeListener('updates:progress', handler);
     },
   },
+  feedback: {
+    status: () => ipcRenderer.invoke('feedback:status'),
+    signIn: () => ipcRenderer.invoke('feedback:sign-in'),
+    cancelSignIn: () => ipcRenderer.invoke('feedback:cancel-sign-in'),
+    signOut: () => ipcRenderer.invoke('feedback:sign-out'),
+    submit: (input) => ipcRenderer.invoke('feedback:submit', input),
+    open: (url) => ipcRenderer.invoke('feedback:open', url),
+    starState: () => ipcRenderer.invoke('feedback:star-state'),
+    setStarred: (starred) => ipcRenderer.invoke('feedback:set-starred', starred),
+    onSignedIn: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, status: import('../shared/githubFeedback').GitHubFeedbackStatus) => callback(status);
+      ipcRenderer.on('feedback:signed-in', handler);
+      return () => ipcRenderer.removeListener('feedback:signed-in', handler);
+    },
+    onSignInFailed: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, failure: { error: import('../shared/githubFeedback').FeedbackErrorCode; detail?: string }) => callback(failure);
+      ipcRenderer.on('feedback:sign-in-failed', handler);
+      return () => ipcRenderer.removeListener('feedback:sign-in-failed', handler);
+    },
+  },
   sessions: {
     list: () => ipcRenderer.invoke('sessions:list'),
     get: (id) => ipcRenderer.invoke('sessions:get', id),
