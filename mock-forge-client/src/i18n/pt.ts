@@ -506,7 +506,7 @@ export const pt: Translation = {
   feedback: {
     pageTitle: 'Feedback',
     pageSubtitle: 'Publique um bug ou uma sugestão no repositório do MockForge.',
-    signIn: 'Entrar com o GitHub',
+    signIn: 'Login com GitHub',
     signInWaiting: 'Confirme o código no GitHub',
     userCodeHint: 'O código também foi copiado. Ele expira em alguns minutos.',
     openGitHub: 'Abrir o GitHub',

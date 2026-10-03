@@ -2,6 +2,7 @@ export const GITHUB_OWNER = 'jvictororiz';
 export const GITHUB_REPO = 'Mock-Forge';
 export const CASK_TOKEN = 'mockforge';
 export const APP_PRODUCT_NAME = 'MockForge';
+export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
 export type AppUpdateMethod = 'windows-setup' | 'mac-brew' | 'mac-dmg';
 
@@ -32,6 +33,15 @@ export type AppUpdateCheckResult = {
   packaged: boolean;
   error?: string;
 };
+
+/** A failed background check keeps the last result, including an update already found. */
+export function mergeBackgroundUpdateCheck(
+  previous: AppUpdateCheckResult | null,
+  next: AppUpdateCheckResult,
+): AppUpdateCheckResult {
+  if (next.error && previous) return previous;
+  return next;
+}
 
 export function githubRepoUrl(): string {
   return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;

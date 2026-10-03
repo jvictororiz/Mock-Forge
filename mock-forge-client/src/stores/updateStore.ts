@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AppUpdateCheckResult } from '../../shared/appUpdate';
+import { mergeBackgroundUpdateCheck, type AppUpdateCheckResult } from '../../shared/appUpdate';
 
 type ApplyResult = {
   success: boolean;
@@ -12,7 +12,7 @@ type UpdateState = {
   applying: boolean;
   progress: number | null;
   result: AppUpdateCheckResult | null;
-  check: () => Promise<AppUpdateCheckResult | null>;
+  check: (options?: { background?: boolean }) => Promise<AppUpdateCheckResult | null>;
   apply: () => Promise<ApplyResult>;
 };
 
@@ -32,16 +32,22 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
   progress: null,
   result: null,
 
-  check: async () => {
+  check: async (options) => {
     if (get().checking) return get().result;
+    if (options?.background && get().applying) return get().result;
     bindProgress();
     set({ checking: true });
+    const publish = (result: AppUpdateCheckResult) => {
+      const next = options?.background
+        ? mergeBackgroundUpdateCheck(get().result, result)
+        : result;
+      set({ result: next, checking: false });
+      return next;
+    };
     try {
-      const result = await window.mockforge.updates.check();
-      set({ result, checking: false });
-      return result;
+      return publish(await window.mockforge.updates.check());
     } catch (error) {
-      const failed: AppUpdateCheckResult = {
+      return publish({
         currentVersion: get().result?.currentVersion || '',
         latestVersion: null,
         available: false,
@@ -54,9 +60,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
         brewInstallCommand: get().result?.brewInstallCommand || '',
         packaged: get().result?.packaged ?? false,
         error: error instanceof Error ? error.message : String(error),
-      };
-      set({ result: failed, checking: false });
-      return failed;
+      });
     }
   },
 

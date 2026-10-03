@@ -4,12 +4,14 @@ import {
   compareVersions,
   macDmgAssetName,
   macDmgAssetNameLegacy,
+  mergeBackgroundUpdateCheck,
   parseBrewLivecheck,
   releaseFromTag,
   resolveUpdatePlan,
   tagFromGithubReleaseUrl,
   windowsSetupAssetName,
   windowsSetupAssetNameLegacy,
+  type AppUpdateCheckResult,
   type GithubRelease,
 } from '../shared/appUpdate';
 
@@ -209,5 +211,48 @@ describe('resolveUpdatePlan', () => {
     expect(plan.available).toBe(true);
     expect(plan.method).toBeNull();
     expect(plan.releaseUrl).toContain('github.com');
+  });
+});
+
+describe('mergeBackgroundUpdateCheck', () => {
+  const check = (overrides: Partial<AppUpdateCheckResult>): AppUpdateCheckResult => ({
+    currentVersion: '0.7.27',
+    latestVersion: '0.7.28',
+    available: true,
+    method: 'windows-setup',
+    releaseUrl: 'https://github.com/jvictororiz/Mock-Forge/releases/tag/v0.7.28',
+    notes: '',
+    assetName: 'MockForge-win-x64-setup.exe',
+    downloadUrl: 'https://example.test/setup.exe',
+    caskUrl: null,
+    brewInstallCommand: '',
+    packaged: true,
+    ...overrides,
+  });
+
+  it('keeps an update already found when the later check fails', () => {
+    const previous = check({});
+    const failed = check({
+      latestVersion: null,
+      available: false,
+      method: null,
+      error: 'Network request failed',
+    });
+
+    expect(mergeBackgroundUpdateCheck(previous, failed)).toBe(previous);
+  });
+
+  it('keeps the last successful result when a later check fails offline', () => {
+    const previous = check({ latestVersion: '0.7.27', available: false, method: null });
+    const failed = check({ available: false, error: 'Network request failed' });
+
+    expect(mergeBackgroundUpdateCheck(previous, failed)).toBe(previous);
+  });
+
+  it('replaces the last result when the later check succeeds', () => {
+    const previous = check({ latestVersion: '0.7.27', available: false, method: null });
+    const next = check({});
+
+    expect(mergeBackgroundUpdateCheck(previous, next)).toBe(next);
   });
 });

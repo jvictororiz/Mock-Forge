@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast';
 import { useAppStore } from './stores/appStore';
 import { useUpdateStore } from './stores/updateStore';
+import { UPDATE_CHECK_INTERVAL_MS } from '../shared/appUpdate';
 import { useLocaleStore } from './stores/localeStore';
 import { ensureCurrentEnvironment } from './utils/ensureEnvironment';
 import { showToast } from './utils/notify';
@@ -58,6 +59,10 @@ export default function App() {
     }
     init();
 
+    const updateInterval = setInterval(() => {
+      void useUpdateStore.getState().check({ background: true });
+    }, UPDATE_CHECK_INTERVAL_MS);
+
     const unsubscribe = window.mockforge.traffic.onUpdate((requests) => {
       const previousIds = new Set(useAppStore.getState().traffic.map((record) => record.id));
       useAppStore.getState().appendTraffic(requests);
@@ -93,6 +98,7 @@ export default function App() {
       unsubscribeStopped();
       unsubscribeStatus();
       clearInterval(statusInterval);
+      clearInterval(updateInterval);
     };
   }, []);
 
