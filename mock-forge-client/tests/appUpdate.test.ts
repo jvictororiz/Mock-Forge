@@ -33,7 +33,9 @@ describe('brewUpgradeScript', () => {
       caskPath: '/tmp/mockforge-update.rb',
     });
 
-    expect(script).toContain("'/opt/homebrew/bin/brew' upgrade --cask --greedy 'mockforge'");
+    expect(script).toContain("'/opt/homebrew/bin/brew' upgrade --cask --greedy --appdir=\"$APPDIR\" 'mockforge'");
+    expect(script).toContain('"$HOME/Applications/MockForge.app"');
+    expect(script).not.toContain('joao.holanda');
     expect(script).toContain("target '0.7.20'");
     expect(script).toContain('jvictororiz/homebrew-mockforge');
     expect(script).not.toContain('uninstall');

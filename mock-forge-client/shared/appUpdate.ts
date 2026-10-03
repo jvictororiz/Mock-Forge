@@ -173,6 +173,20 @@ version_lt() {
   return 1
 }
 
+app_dir() {
+  if [ -d "\$HOME/Applications/MockForge.app" ]; then
+    printf '%s' "\$HOME/Applications"
+    return
+  fi
+  if [ -d "/Applications/MockForge.app" ] || [ -w "/Applications" ]; then
+    printf '%s' "/Applications"
+    return
+  fi
+  mkdir -p "\$HOME/Applications"
+  printf '%s' "\$HOME/Applications"
+}
+APPDIR="\$(app_dir)"
+echo "appdir: \$APPDIR"
 echo "installed before: \$(installed_version)"
 repo="\$(${brew} --repository ${tap} 2>/dev/null || true)"
 if [ ! -d "\$repo/.git" ]; then
@@ -186,7 +200,7 @@ if [ -d "\$repo/.git" ]; then
   git -C "\$repo" reset --quiet --hard origin/main || echo "reset failed: \$?"
 fi
 echo "brew upgrade --cask --greedy"
-${brew} upgrade --cask --greedy ${cask} || echo "upgrade failed: \$?"
+${brew} upgrade --cask --greedy --appdir="\$APPDIR" ${cask} || echo "upgrade failed: \$?"
 current="\$(installed_version)"
 echo "installed after upgrade: \${current:-none}"
 if [ -n "\$current" ] && version_lt "\$current" ${version} && [ -d "\$repo" ]; then
@@ -194,7 +208,7 @@ if [ -n "\$current" ] && version_lt "\$current" ${version} && [ -d "\$repo" ]; t
   curl -fL --retry 3 -A Homebrew ${caskUrl} -o ${caskPath} || echo "curl failed: \$?"
   if grep -q 'cask "mockforge"' ${caskPath}; then
     cp ${caskPath} "\$repo/Casks/mockforge.rb" || echo "copy failed: \$?"
-    ${brew} upgrade --cask --greedy ${cask} || echo "second upgrade failed: \$?"
+    ${brew} upgrade --cask --greedy --appdir="\$APPDIR" ${cask} || echo "second upgrade failed: \$?"
   else
     echo "release cask download was not a cask"
   fi
@@ -202,7 +216,7 @@ if [ -n "\$current" ] && version_lt "\$current" ${version} && [ -d "\$repo" ]; t
 fi
 if [ ! -d "/Applications/MockForge.app" ] && [ ! -d "\$HOME/Applications/MockForge.app" ]; then
   echo "app missing, installing from the tap"
-  ${brew} install --cask ${tap}/${cask} || ${brew} reinstall --cask ${cask} || echo "restore failed: \$?"
+  ${brew} install --cask --appdir="\$APPDIR" ${tap}/${cask} || ${brew} reinstall --cask --appdir="\$APPDIR" ${cask} || echo "restore failed: \$?"
 fi
 
 open_newest() {

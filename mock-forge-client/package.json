@@ -1,6 +1,6 @@
 {
   "name": "mockforge",
-  "version": "0.7.24",
+  "version": "0.7.25",
   "description": "Visual mock server manager for MockServer — offline, open source, no account required",
   "main": "dist-electron/main.js",
   "author": "MockForge Contributors",
