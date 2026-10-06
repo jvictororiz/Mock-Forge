@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
 import { TrafficLayout } from './components/TrafficLayout';
 import { SettingsView } from './components/SettingsView';
@@ -24,6 +24,52 @@ const EditorLayout = lazy(() => import('./components/EditorLayout').then((module
 const HistoryLayout = lazy(() => import('./components/HistoryLayout').then((module) => ({
   default: module.HistoryLayout,
 })));
+
+function PersistentPane({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(active);
+
+  useEffect(() => {
+    if (!active || mounted) return;
+    setMounted(true);
+  }, [active, mounted]);
+
+  useEffect(() => {
+    if (active) return;
+    const pane = paneRef.current;
+    const focused = document.activeElement;
+    if (pane && focused instanceof HTMLElement && pane.contains(focused)) {
+      focused.blur();
+    }
+  }, [active]);
+
+  if (!mounted) {
+    if (!active) return null;
+    return (
+      <div style={styles.tabPane}>
+        <TabLoadingFallback />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={paneRef}
+      style={{
+        ...styles.tabPane,
+        display: active ? 'flex' : 'none',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function App() {
   const activeTab = useAppStore((state) => state.activeTab);
@@ -120,27 +166,28 @@ export default function App() {
       <Header />
       <main style={styles.main}>
         <ErrorBoundary>
-          <div
-            style={{
-              ...styles.tabPane,
-              display: activeTab === 'traffic' ? 'flex' : 'none',
-            }}
-          >
+          <PersistentPane active={activeTab === 'traffic'}>
             <TrafficLayout />
-          </div>
-          {activeTab === 'settings' && <SettingsView />}
-          {activeTab === 'environments' && <EnvironmentView />}
-          {activeTab === 'editor' && (
+          </PersistentPane>
+          <PersistentPane active={activeTab === 'settings'}>
+            <SettingsView />
+          </PersistentPane>
+          <PersistentPane active={activeTab === 'environments'}>
+            <EnvironmentView />
+          </PersistentPane>
+          <PersistentPane active={activeTab === 'editor'}>
             <Suspense fallback={<TabLoadingFallback />}>
               <EditorLayout />
             </Suspense>
-          )}
-          {activeTab === 'sessions' && (
+          </PersistentPane>
+          <PersistentPane active={activeTab === 'sessions'}>
             <Suspense fallback={<TabLoadingFallback />}>
               <HistoryLayout />
             </Suspense>
-          )}
-          {activeTab === 'feedback' && <FeedbackView />}
+          </PersistentPane>
+          <PersistentPane active={activeTab === 'feedback'}>
+            <FeedbackView />
+          </PersistentPane>
         </ErrorBoundary>
       </main>
       <Toast />

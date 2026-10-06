@@ -6,7 +6,7 @@ import { createMockFromTraffic, createMocksFromTraffic } from '../utils/trafficA
 import { copyCapturedRequestCurl, copyCapturedRequestsCurl } from '../utils/curlActions';
 import { filterTrafficRequests } from '../utils/trafficSearch';
 import { TrafficRequestMenu } from './TrafficRequestMenu';
-import { VirtualTrafficTable } from './VirtualTrafficTable';
+import { VirtualTrafficTable, trafficHeaderCellCompactStyle, trafficHeaderCellStyle } from './VirtualTrafficTable';
 import { useTrafficRequestMenu } from '../hooks/useTrafficRequestMenu';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { showToast } from '../utils/notify';
@@ -47,7 +47,6 @@ export function SessionTrafficView() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, TRAFFIC_SEARCH_DEBOUNCE_MS);
   const searchRef = useRef<HTMLInputElement>(null);
-  const tableWrapperRef = useRef<HTMLDivElement>(null);
   const {
     menu,
     menuRef,
@@ -156,7 +155,7 @@ export function SessionTrafficView() {
 
   const handleRowContextMenu = useCallback((
     id: string,
-    event: React.MouseEvent<HTMLTableRowElement>,
+    event: React.MouseEvent<HTMLDivElement>,
   ) => {
     setSelectedRecordId(id);
     openFromContextMenu(event, id);
@@ -180,17 +179,13 @@ export function SessionTrafficView() {
     : undefined;
 
   const trafficTableEmptyRow = viewingRecords.length === 0 ? (
-    <tr>
-      <td colSpan={9} style={styles.emptyCell}>
-        {t.sessions.empty}
-      </td>
-    </tr>
+    <div style={styles.empty}>
+      {t.sessions.empty}
+    </div>
   ) : filteredTraffic.length === 0 ? (
-    <tr>
-      <td colSpan={9} style={styles.emptyCell}>
-        {t.traffic.noResults(searchQuery.trim())}
-      </td>
-    </tr>
+    <div style={styles.empty}>
+      {t.traffic.noResults(searchQuery.trim())}
+    </div>
   ) : null;
 
   return (
@@ -272,12 +267,11 @@ export function SessionTrafficView() {
         </div>
       ) : null}
 
-      <div ref={tableWrapperRef} style={styles.tableWrapper}>
+      <div style={styles.tableWrapper}>
         {recordsLoading ? (
           <div style={styles.empty}>{t.sessions.loading}</div>
         ) : (
           <VirtualTrafficTable
-            tableWrapperRef={tableWrapperRef}
             records={filteredTraffic}
             selectedId={selectedRecordId}
             selectedIds={selectedIds}
@@ -290,12 +284,10 @@ export function SessionTrafficView() {
             onToggleCheck={toggleSelected}
             onOpenMenu={handleOpenRowMenu}
             onOpenMock={handleOpenMock}
-            tableStyle={styles.table}
-            theadStyle={styles.thead}
             emptyRow={trafficTableEmptyRow}
             header={(
-              <tr>
-                <th style={{ ...styles.th, width: '36px' }}>
+              <>
+                <div role="columnheader" style={trafficHeaderCellCompactStyle}>
                   <input
                     type="checkbox"
                     checked={allVisibleSelected}
@@ -307,16 +299,16 @@ export function SessionTrafficView() {
                     aria-label={t.common.selectAll}
                     style={styles.checkbox}
                   />
-                </th>
-                <th style={{ ...styles.th, width: '36px' }} />
-                <th style={{ ...styles.th, width: '44px' }} />
-                <th style={styles.th}>{t.traffic.colTime}</th>
-                <th style={styles.th}>{t.traffic.colMethod}</th>
-                <th style={styles.th}>{t.traffic.colPath}</th>
-                <th style={{ ...styles.th, width: '140px' }}>{t.traffic.colDevice}</th>
-                <th style={{ ...styles.th, width: '70px' }}>{t.traffic.colStatus}</th>
-                <th style={{ ...styles.th, width: '80px' }}>{t.traffic.colDuration}</th>
-              </tr>
+                </div>
+                <div role="columnheader" style={trafficHeaderCellCompactStyle} />
+                <div role="columnheader" style={trafficHeaderCellCompactStyle} />
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colTime}</div>
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colMethod}</div>
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colPath}</div>
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colDevice}</div>
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colStatus}</div>
+                <div role="columnheader" style={trafficHeaderCellStyle}>{t.traffic.colDuration}</div>
+              </>
             )}
           />
         )}
@@ -475,42 +467,12 @@ const styles: Record<string, React.CSSProperties> = {
   tableWrapper: {
     flex: '1 1 0',
     minHeight: 0,
-    overflow: 'auto',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  thead: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1,
-  },
-  th: {
-    textAlign: 'left',
-    padding: '8px 12px',
-    fontSize: '11px',
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid var(--border)',
-    background: 'var(--bg-primary)',
-  },
-  tr: {
-    cursor: 'pointer',
-    transition: 'background 0.1s',
-  },
-  trSelected: {
-    background: 'var(--bg-tertiary)',
+    minWidth: 0,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
   empty: {
-    textAlign: 'center',
-    padding: '48px 24px',
-    color: 'var(--text-muted)',
-    fontSize: '13px',
-  },
-  emptyCell: {
     textAlign: 'center',
     padding: '48px 24px',
     color: 'var(--text-muted)',

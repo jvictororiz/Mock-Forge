@@ -11,6 +11,7 @@ import {
   getTrafficStatusLabel,
 } from '../utils/trafficInstabilityDisplay';
 import { useI18n } from '../hooks/useI18n';
+import { TRAFFIC_GRID_COLUMNS, TRAFFIC_ROW_HEIGHT } from './trafficTableMetrics';
 
 export type TrafficTableRowProps = {
   record: CapturedRequest;
@@ -20,7 +21,7 @@ export type TrafficTableRowProps = {
   selectRowLabel: string;
   actionsLabel: string;
   onSelect: (id: string) => void;
-  onContextMenu: (id: string, event: React.MouseEvent<HTMLTableRowElement>) => void;
+  onContextMenu: (id: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onToggleCheck: (id: string) => void;
   onOpenMenu: (id: string, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenMock?: (record: CapturedRequest, kind: MockKind) => void;
@@ -41,6 +42,7 @@ export const TrafficTableRow = memo(function TrafficTableRow({
 }: TrafficTableRowProps) {
   const { t } = useI18n();
   const isInstability = isInstabilityRecord(record);
+  const pathLabel = getTrafficPathLabel(record, t);
   const statusLabel = getTrafficStatusLabel(record, t);
   const statusTone = statusColor(record.responseStatus, {
     failed: !!record.connectionFailed,
@@ -48,7 +50,8 @@ export const TrafficTableRow = memo(function TrafficTableRow({
   });
 
   return (
-    <tr
+    <div
+      role="row"
       style={{
         ...styles.tr,
         ...(selected ? styles.trSelected : {}),
@@ -58,7 +61,7 @@ export const TrafficTableRow = memo(function TrafficTableRow({
       onClick={() => onSelect(record.id)}
       onContextMenu={(event) => onContextMenu(record.id, event)}
     >
-      <td style={styles.tdCheckbox}>
+      <div role="cell" style={styles.tdCompact}>
         <input
           type="checkbox"
           checked={checked}
@@ -67,8 +70,8 @@ export const TrafficTableRow = memo(function TrafficTableRow({
           aria-label={selectRowLabel}
           style={styles.checkbox}
         />
-      </td>
-      <td style={styles.tdMenu}>
+      </div>
+      <div role="cell" style={styles.tdCompact}>
         <button
           type="button"
           style={styles.menuBtn}
@@ -78,27 +81,31 @@ export const TrafficTableRow = memo(function TrafficTableRow({
         >
           ⋮
         </button>
-      </td>
-      <td style={styles.tdIcon}>
+      </div>
+      <div role="cell" style={styles.tdCompact}>
         <TrafficMockIndicators
           request={record}
           onOpenMock={onOpenMock && !isInstability ? (kind) => onOpenMock(record, kind) : undefined}
         />
-      </td>
-      <td style={styles.td}>{formatTimestamp(record.timestamp)}</td>
-      <td style={styles.td}>
+      </div>
+      <div role="cell" style={styles.td}>{formatTimestamp(record.timestamp)}</div>
+      <div role="cell" style={styles.td}>
         <MethodBadge method={getTrafficMethodLabel(record)} />
-      </td>
-      <td style={{
-        ...styles.td,
-        fontFamily: isInstability ? 'inherit' : 'var(--font-mono)',
-        fontSize: isInstability ? '11px' : '12px',
-        color: isInstability ? '#ff7043' : undefined,
-        fontWeight: isInstability ? 600 : undefined,
-      }}>
-        {getTrafficPathLabel(record, t)}
-      </td>
-      <td style={{ ...styles.td, color: 'var(--text-secondary)', fontSize: '11px' }}>
+      </div>
+      <div
+        role="cell"
+        style={{
+          ...styles.td,
+          fontFamily: isInstability ? 'inherit' : 'var(--font-mono)',
+          fontSize: isInstability ? '11px' : '12px',
+          color: isInstability ? '#ff7043' : undefined,
+          fontWeight: isInstability ? 600 : undefined,
+        }}
+        title={pathLabel}
+      >
+        {pathLabel}
+      </div>
+      <div role="cell" style={{ ...styles.td, color: 'var(--text-secondary)', fontSize: '11px' }}>
         {isInstability ? '—' : (
           <ConsumerDeviceLabel
             consumerId={record.consumerId}
@@ -107,21 +114,25 @@ export const TrafficTableRow = memo(function TrafficTableRow({
             headers={record.headers}
           />
         )}
-      </td>
-      <td style={{ ...styles.td, color: statusTone, fontWeight: 600, textTransform: 'lowercase' }}>
+      </div>
+      <div role="cell" style={{ ...styles.td, color: statusTone, fontWeight: 600, textTransform: 'lowercase' }}>
         {statusLabel}
-      </td>
-      <td style={{ ...styles.td, color: 'var(--text-secondary)' }}>
+      </div>
+      <div role="cell" style={{ ...styles.td, color: 'var(--text-secondary)' }}>
         {formatDuration(record.durationMs)}
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 });
 
 const styles: Record<string, React.CSSProperties> = {
   tr: {
+    display: 'grid',
+    gridTemplateColumns: TRAFFIC_GRID_COLUMNS,
+    alignItems: 'center',
+    height: TRAFFIC_ROW_HEIGHT,
     cursor: 'pointer',
-    transition: 'background 0.1s',
+    boxSizing: 'border-box',
   },
   trSelected: {
     background: 'var(--bg-tertiary)',
@@ -133,27 +144,25 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(249, 62, 62, 0.04)',
   },
   td: {
-    padding: '6px 12px',
+    minWidth: 0,
+    padding: '0 12px',
     borderBottom: '1px solid var(--border)',
     fontSize: '12px',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    lineHeight: `${TRAFFIC_ROW_HEIGHT - 1}px`,
+    height: '100%',
+    boxSizing: 'border-box',
   },
-  tdIcon: {
-    padding: '6px 8px',
+  tdCompact: {
+    minWidth: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderBottom: '1px solid var(--border)',
-    width: '44px',
-    textAlign: 'center',
-  },
-  tdCheckbox: {
-    padding: '4px 8px',
-    borderBottom: '1px solid var(--border)',
-    width: '36px',
-    textAlign: 'center',
-  },
-  tdMenu: {
-    padding: '4px 8px',
-    borderBottom: '1px solid var(--border)',
-    width: '36px',
-    textAlign: 'center',
+    height: '100%',
+    boxSizing: 'border-box',
   },
   menuBtn: {
     width: '24px',
