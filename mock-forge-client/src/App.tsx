@@ -109,6 +109,10 @@ export default function App() {
       void useUpdateStore.getState().check({ background: true });
     }, UPDATE_CHECK_INTERVAL_MS);
 
+    const unsubscribeEnv = window.mockforge.environment.onChanged((payload) => {
+      useAppStore.getState().applyExternalEnvironmentChange(payload);
+    });
+
     const unsubscribe = window.mockforge.traffic.onUpdate((requests) => {
       const previousIds = new Set(useAppStore.getState().traffic.map((record) => record.id));
       useAppStore.getState().appendTraffic(requests);
@@ -140,6 +144,7 @@ export default function App() {
     });
 
     return () => {
+      unsubscribeEnv();
       unsubscribe();
       unsubscribeStopped();
       unsubscribeStatus();

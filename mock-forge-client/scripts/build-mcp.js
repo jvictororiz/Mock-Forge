@@ -1,5 +1,5 @@
 const { build } = require('esbuild');
-const { mkdirSync } = require('fs');
+const { mkdirSync, readFileSync, writeFileSync } = require('fs');
 const { join } = require('path');
 
 const rootDir = join(__dirname, '..');
@@ -18,6 +18,15 @@ build({
   },
   external: [],
 }).then(() => {
+  const source = readFileSync(outFile, 'utf8');
+  const normalized = source.replace(/^(#![^\n]*\r?\n)+/, '#!/usr/bin/env node\n');
+  if (normalized !== source) {
+    writeFileSync(outFile, normalized);
+  }
+  const secondLine = normalized.split(/\r?\n/)[1] || '';
+  if (secondLine.startsWith('#!')) {
+    throw new Error('MCP bundle still has a shebang after the first line');
+  }
   console.log(`Built ${outFile}`);
 }).catch((error) => {
   console.error(error);

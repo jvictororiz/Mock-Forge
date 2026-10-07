@@ -167,6 +167,7 @@ export function buildMcpServerEntry(): Record<string, unknown> {
 
   if (app.isPackaged) {
     return {
+      type: 'stdio',
       command: nodePath,
       args: [mcpServerPath],
       env: {
@@ -177,6 +178,7 @@ export function buildMcpServerEntry(): Record<string, unknown> {
   }
 
   return {
+    type: 'stdio',
     command: 'node',
     args: [mcpServerPath],
     env: {

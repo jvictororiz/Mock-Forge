@@ -7,6 +7,7 @@ import {
   searchRoutes,
   searchSessionRequests,
 } from './queries';
+import { commitMutation } from './commit';
 import {
   getEnvironment,
   getSession,
@@ -14,6 +15,7 @@ import {
   listSessions,
   readSessionRecords,
 } from './storage';
+import { buildWriteMutation, WRITE_TOOL_DEFINITIONS } from './writeTools';
 
 export interface ImportantDivergence {
   endpoint: string;
@@ -61,6 +63,9 @@ export async function handleToolCall(
   name: string,
   args: Record<string, unknown> | undefined,
 ): Promise<unknown> {
+  const mutation = buildWriteMutation(name, args);
+  if (mutation) return commitMutation(mutation);
+
   switch (name) {
     case 'list_sessions':
       return listSessions({
@@ -360,4 +365,5 @@ export const TOOL_DEFINITIONS = [
       required: ['flowName'],
     },
   },
-] as const;
+  ...WRITE_TOOL_DEFINITIONS,
+];

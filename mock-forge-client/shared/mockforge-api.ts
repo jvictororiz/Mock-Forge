@@ -1,4 +1,5 @@
 import type { Environment, Route, CapturedRequest, ServerStatus, AdbDevice, MockKind, MirrorStatus, MirrorTouchInput, MirrorScrollInput, MirrorCaptureResult } from './types';
+import type { EnvironmentChangedPayload, EnvironmentSaveResult } from './mcpBridge';
 import type { AppUpdateCheckResult } from './appUpdate';
 import type { ConsumerPlatform } from './consumerUtils';
 import type { EnvironmentSnapshot, TrafficSession, TrafficSessionMeta } from './sessionTypes';
@@ -31,12 +32,13 @@ export interface MockForgeAPI {
     current: () => Promise<Environment | null>;
     setCurrent: (id: string) => Promise<Environment | null>;
     create: (name: string, port?: number) => Promise<Environment>;
-    save: (env: Environment) => Promise<Environment>;
+    save: (env: Environment) => Promise<EnvironmentSaveResult>;
     delete: (id: string) => Promise<Environment | null>;
     duplicate: (id: string, newName?: string) => Promise<Environment | null>;
     rename: (id: string, name: string) => Promise<Environment | null>;
     export: (id: string) => Promise<boolean>;
     import: () => Promise<Environment | null>;
+    onChanged: (callback: (payload: EnvironmentChangedPayload) => void) => () => void;
   };
   route: {
     createFromRequest: (captured: CapturedRequest, kind?: MockKind) => Promise<Route | null>;
@@ -117,7 +119,7 @@ export interface MockForgeAPI {
   };
   updates: {
     check: () => Promise<AppUpdateCheckResult>;
-    apply: () => Promise<{ success: boolean; error?: string; openedReleasePage?: boolean }>;
+    apply: (locale?: string) => Promise<{ success: boolean; error?: string; openedReleasePage?: boolean }>;
     onProgress: (callback: (percent: number | null) => void) => () => void;
   };
   feedback: {

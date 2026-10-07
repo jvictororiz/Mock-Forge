@@ -18,6 +18,16 @@ import { setupAdbReverse, removeAdbReverse, getAdbStatus, connectAdbDevice, setu
 import { scrcpyMirrorService, getMirrorStatus } from './services/scrcpyMirror';
 import { copyMediaFileToClipboard } from './utils/mirrorCaptureClipboard';
 import { DEFAULT_PORT } from '../shared/constants';
+import { applyEnvironmentMutation } from '../shared/environmentMutations';
+import {
+  bumpEnvironmentRevision,
+  describeMutationResult,
+  isStaleEnvironmentSave,
+  type EnvironmentChangedPayload,
+  type EnvironmentSaveResult,
+  type McpMutation,
+  type McpMutationSuccess,
+} from '../shared/mcpBridge';
 import { prepareEnvironment, resolveUpstream } from '../shared/upstreamUtils';
 import { dedupeTrafficRecords, buildTrafficFingerprint, presentTrafficRecords } from '../shared/trafficDedup';
 import { createInstabilityRecord, hasTrafficInstability } from '../shared/trafficInstability';
@@ -28,9 +38,11 @@ import { startAdbDeviceTracker, stopAdbDeviceTracker } from './services/adbDevic
 import { compareSessions } from '../shared/sessionCompare';
 import type { EnvironmentSnapshot } from '../shared/sessionTypes';
 import { MOCKFORGE_REQUEST_ID_HEADER, MOCKFORGE_FORCED_EXECUTION_HEADER } from '../shared/mockforgeHeaders';
+import { startMcpBridge, stopMcpBridge } from './services/McpBridgeServer';
 import {
   canExecuteMcpServer,
   getManualConfig,
+  getMockForgeDataDir,
   listDetectedClients,
   removeClient,
   setupClient,
@@ -78,6 +90,13 @@ tcpProxy.setOnInstabilityLog((entry) => {
 const envStorage = new EnvironmentStorage();
 const sessionStorage = new SessionStorage();
 let currentEnvironment: Environment | null = null;
+let environmentWriteQueue: Promise<void> = Promise.resolve();
+
+function enqueueEnvironmentWrite<T>(task: () => Promise<T>): Promise<T> {
+  const run = environmentWriteQueue.then(task, task);
+  environmentWriteQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
 let trafficPollInterval: ReturnType<typeof setInterval> | null = null;
 const TRAFFIC_POLL_ACTIVE_MS = 800;
 const TRAFFIC_POLL_IDLE_MS = 2000;
@@ -631,6 +650,10 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+  void startMcpBridge(getMockForgeDataDir(), (mutation) => enqueueEnvironmentWrite(() => applyMcpMutation(mutation)))
+    .catch((error) => {
+      console.error('Failed to start MCP bridge', error);
+    });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -649,6 +672,7 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('before-quit', async () => {
+  stopMcpBridge();
   githubFeedback.cancelSignIn();
   stopTrafficPolling();
   stopAdbPolling();
@@ -845,7 +869,9 @@ async function syncProxyRouting(env: Environment): Promise<void> {
   await tcpProxy.setRequestMockRoutes(environmentToProxyRequestMocks(env));
 }
 
-ipcMain.handle('server:start', async () => {
+ipcMain.handle('server:start', () => startMockServer());
+
+async function startMockServer(): Promise<{ success: boolean; error?: string }> {
   const env = reloadCurrentEnvironment();
   const upstream = env ? resolveUpstream(env) : undefined;
   const publicPort = getPublicPort();
@@ -877,9 +903,11 @@ ipcMain.handle('server:start', async () => {
     startAdbPolling();
   }
   return { success: true };
-});
+}
 
-ipcMain.handle('server:stop', async () => {
+ipcMain.handle('server:stop', () => stopMockServer());
+
+async function stopMockServer(): Promise<{ success: boolean }> {
   const publicPort = getPublicPort();
   if (tcpProxy.getActiveConnections() > 0) {
     recordInstabilityEvent(
@@ -898,7 +926,7 @@ ipcMain.handle('server:stop', async () => {
   await processManager.stop();
   MockServerAdapter.resetSyncState();
   return { success: true };
-});
+}
 
 ipcMain.handle('traffic:get', async () => {
   if (!isServerRunning()) return [];
@@ -966,63 +994,184 @@ ipcMain.handle('instability:export-logs', async (_event, recordId: string) => {
   return { success: true, filePath: result.filePath };
 });
 
+function publishEnvironmentChange(focus: {
+  openEditor: boolean;
+  selectedRouteId?: string | null;
+  editorTab?: EnvironmentChangedPayload['editorTab'];
+}): void {
+  const payload: EnvironmentChangedPayload = {
+    environments: envStorage.list(),
+    currentEnvironment,
+    openEditor: focus.openEditor,
+    selectedRouteId: focus.selectedRouteId,
+    editorTab: focus.editorTab,
+  };
+  mainWindow?.webContents.send('environment:changed', payload);
+}
+
+async function syncRunningEnvironment(env: Environment): Promise<void> {
+  if (!processManager.isRunning()) return;
+  const upstream = resolveUpstream(env);
+  const synced = { ...env, upstream };
+  await getAdapter().syncEnvironment(synced);
+  await syncProxyRouting(synced);
+}
+
+function saveEnvironmentFromMcp(env: Environment): Environment {
+  const disk = envStorage.get(env.id);
+  const prepared = prepareEnvironment(bumpEnvironmentRevision(env, disk?.revision));
+  envStorage.save(prepared);
+  if (currentEnvironment?.id === prepared.id) currentEnvironment = prepared;
+  return prepared;
+}
+
+async function applyMcpMutation(mutation: McpMutation): Promise<McpMutationSuccess> {
+  const listed = envStorage.list();
+  const environments = listed.map((env) => {
+    if (
+      currentEnvironment
+      && env.id === currentEnvironment.id
+      && (currentEnvironment.revision ?? 0) >= (env.revision ?? 0)
+    ) {
+      return currentEnvironment;
+    }
+    return env;
+  });
+
+  const previous = currentEnvironment;
+  const wasRunning = isServerRunning();
+  const outcome = applyEnvironmentMutation(environments, mutation, previous?.id ?? null);
+  const nextCurrentId = outcome.switchCurrent
+    ? outcome.currentEnvironmentId
+    : previous?.id ?? null;
+  const nextDraft = nextCurrentId
+    ? outcome.environments.find((env) => env.id === nextCurrentId) ?? null
+    : null;
+  const restart = Boolean(wasRunning && previous && nextDraft && previous.port !== nextDraft.port);
+
+  if (restart) await stopMockServer();
+
+  for (const id of outcome.deleteIds) envStorage.delete(id);
+
+  const saved = new Map<string, Environment>();
+  for (const id of outcome.saveIds) {
+    const env = outcome.environments.find((item) => item.id === id);
+    if (!env) continue;
+    saved.set(id, saveEnvironmentFromMcp(env));
+  }
+
+  if (previous && outcome.deleteIds.includes(previous.id)) {
+    currentEnvironment = envStorage.getDefaultEnvironment();
+  } else if (outcome.switchCurrent && outcome.currentEnvironmentId) {
+    currentEnvironment = saved.get(outcome.currentEnvironmentId)
+      ?? envStorage.get(outcome.currentEnvironmentId);
+  } else if (previous && saved.has(previous.id)) {
+    currentEnvironment = saved.get(previous.id) ?? currentEnvironment;
+  }
+
+  try {
+    if (restart) {
+      const started = await startMockServer();
+      if (!started.success) {
+        throw new Error(started.error || 'Failed to restart MockServer');
+      }
+    } else if (
+      wasRunning
+      && currentEnvironment
+      && (outcome.switchCurrent || outcome.saveIds.includes(currentEnvironment.id))
+    ) {
+      await syncRunningEnvironment(currentEnvironment);
+    }
+  } finally {
+    notifyServerStatusChanged();
+    publishEnvironmentChange({
+      openEditor: outcome.openEditor,
+      selectedRouteId: outcome.replaceSelection ? outcome.selectedRouteId : undefined,
+      editorTab: outcome.editorTab,
+    });
+  }
+
+  const touchedId = outcome.saveIds[0] ?? outcome.currentEnvironmentId;
+  const environment = touchedId
+    ? saved.get(touchedId) ?? envStorage.get(touchedId)
+    : currentEnvironment;
+
+  return {
+    ok: true,
+    appliedLive: true,
+    environment,
+    route: outcome.route,
+    openEditor: outcome.openEditor,
+    selectedRouteId: outcome.replaceSelection ? outcome.selectedRouteId : null,
+    editorTab: outcome.editorTab,
+    message: describeMutationResult({
+      openEditor: outcome.openEditor,
+      route: outcome.route,
+    }, true),
+  };
+}
+
 ipcMain.handle('environment:list', () => envStorage.list());
 
 ipcMain.handle('environment:get', (_e, id: string) => envStorage.get(id));
 
 ipcMain.handle('environment:current', () => reloadCurrentEnvironment());
 
-ipcMain.handle('environment:set-current', async (_e, id: string) => {
+ipcMain.handle('environment:set-current', (_e, id: string) => enqueueEnvironmentWrite(async () => {
   const env = envStorage.get(id);
   if (!env) return null;
   const prepared = applyEnvironment(env);
   if (processManager.isRunning()) {
-    const upstream = resolveUpstream(prepared);
-    const synced = { ...prepared, upstream };
-    await getAdapter().syncEnvironment(synced);
-    await syncProxyRouting(synced);
+    await syncRunningEnvironment(prepared);
   }
   return prepared;
-});
+}));
 
-ipcMain.handle('environment:create', (_e, name: string, port?: number) => {
+ipcMain.handle('environment:create', (_e, name: string, port?: number) => enqueueEnvironmentWrite(async () => {
   const env = envStorage.create(name, port);
   currentEnvironment = env;
   return env;
-});
+}));
 
-ipcMain.handle('environment:save', async (_e, env: Environment) => {
+ipcMain.handle('environment:save', (_e, env: Environment) => enqueueEnvironmentWrite(async (): Promise<EnvironmentSaveResult> => {
+  const disk = envStorage.get(env.id);
+  if (isStaleEnvironmentSave(env, disk)) {
+    if (disk && currentEnvironment?.id === disk.id) currentEnvironment = disk;
+    publishEnvironmentChange({ openEditor: false });
+    return {
+      environment: (disk && currentEnvironment?.id === disk.id ? currentEnvironment : disk) ?? env,
+      applied: false,
+    };
+  }
+
   const prepared = applyEnvironment(env);
   envStorage.save(prepared);
   if (processManager.isRunning()) {
-    const upstream = resolveUpstream(prepared);
-    const synced = { ...prepared, upstream };
-    await getAdapter().syncEnvironment(synced);
-    await syncProxyRouting(synced);
+    await syncRunningEnvironment(prepared);
   }
-  return prepared;
-});
+  return { environment: prepared, applied: true };
+}));
 
-ipcMain.handle('environment:delete', (_e, id: string) => {
+ipcMain.handle('environment:delete', (_e, id: string) => enqueueEnvironmentWrite(async () => {
   envStorage.delete(id);
   if (currentEnvironment?.id === id) {
     currentEnvironment = envStorage.getDefaultEnvironment();
   }
   return currentEnvironment;
-});
+}));
 
-ipcMain.handle('environment:duplicate', (_e, id: string, newName?: string) => {
+ipcMain.handle('environment:duplicate', (_e, id: string, newName?: string) => enqueueEnvironmentWrite(async () => {
   return envStorage.duplicate(id, newName);
-});
+}));
 
-ipcMain.handle('environment:rename', async (_e, id: string, name: string) => {
+ipcMain.handle('environment:rename', (_e, id: string, name: string) => enqueueEnvironmentWrite(async () => {
   const env = envStorage.get(id);
   if (!env) return null;
   env.name = name;
   envStorage.save(env);
   if (currentEnvironment?.id === id) currentEnvironment = env;
   return env;
-});
+}));
 
 ipcMain.handle('environment:export', async (_e, id: string) => {
   const result = await dialog.showSaveDialog(mainWindow!, {
@@ -1044,7 +1193,7 @@ ipcMain.handle('environment:import', async () => {
   return envStorage.importEnv(result.filePaths[0]);
 });
 
-ipcMain.handle('route:create-from-request', async (_e, captured: CapturedRequest, kind: MockKind = 'response') => {
+ipcMain.handle('route:create-from-request', (_e, captured: CapturedRequest, kind: MockKind = 'response') => enqueueEnvironmentWrite(async () => {
   if (!currentEnvironment) return null;
 
   const route = upsertRouteFromCapturedRequest(currentEnvironment.routes, captured, kind);
@@ -1059,9 +1208,9 @@ ipcMain.handle('route:create-from-request', async (_e, captured: CapturedRequest
     await getAdapter().syncEnvironment(currentEnvironment);
   }
   return route;
-});
+}));
 
-ipcMain.handle('route:create-full-mock-from-request', async (_e, captured: CapturedRequest) => {
+ipcMain.handle('route:create-full-mock-from-request', (_e, captured: CapturedRequest) => enqueueEnvironmentWrite(async () => {
   if (!currentEnvironment) return null;
 
   const route = createFullMockRouteFromCaptured(currentEnvironment.routes, captured);
@@ -1076,9 +1225,9 @@ ipcMain.handle('route:create-full-mock-from-request', async (_e, captured: Captu
     await getAdapter().syncEnvironment(currentEnvironment);
   }
   return route;
-});
+}));
 
-ipcMain.handle('route:create-full-mocks-from-requests', async (_e, capturedList: CapturedRequest[]) => {
+ipcMain.handle('route:create-full-mocks-from-requests', (_e, capturedList: CapturedRequest[]) => enqueueEnvironmentWrite(async () => {
   if (!currentEnvironment) return [];
 
   const { routes, added } = createFullMockRoutesFromCaptured(currentEnvironment.routes, capturedList);
@@ -1089,7 +1238,7 @@ ipcMain.handle('route:create-full-mocks-from-requests', async (_e, capturedList:
     await getAdapter().syncEnvironment(currentEnvironment);
   }
   return added;
-});
+}));
 
 ipcMain.handle('route:preview-expectation', (_e, route: Route) => {
   return routeToExpectation(route);
@@ -1328,7 +1477,7 @@ ipcMain.handle('feedback:star-state', () => githubFeedback.starState());
 
 ipcMain.handle('feedback:set-starred', (_e, starred: boolean) => githubFeedback.setStarred(starred));
 
-ipcMain.handle('updates:apply', async () => {
+ipcMain.handle('updates:apply', async (_event, locale?: string) => {
   try {
     return await applyAppUpdate(
       (percent) => {
@@ -1342,6 +1491,7 @@ ipcMain.handle('updates:apply', async () => {
         await tcpProxy.stop();
         await processManager.stop();
       },
+      locale,
     );
   } catch (error) {
     return {

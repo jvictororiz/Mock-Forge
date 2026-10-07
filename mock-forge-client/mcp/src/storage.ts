@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import type { Environment } from '../../shared/types';
@@ -128,4 +128,17 @@ export function getEnvironment(id: string): Environment | null {
   } catch {
     return null;
   }
+}
+
+export function saveEnvironment(env: Environment): Environment {
+  const dir = environmentsDir();
+  mkdirSync(dir, { recursive: true });
+  const prepared = prepareEnvironment(env);
+  writeFileSync(join(dir, `${prepared.id}.json`), `${JSON.stringify(prepared, null, 2)}\n`, 'utf-8');
+  return prepared;
+}
+
+export function deleteEnvironment(id: string): void {
+  const path = join(environmentsDir(), `${id}.json`);
+  if (existsSync(path)) unlinkSync(path);
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Environment, Route, CapturedRequest, ServerStatus } from '../types';
+import type { EnvironmentChangedPayload } from '../../shared/mcpBridge';
 import { cloneRoute } from '../utils/routeActions';
 import {
   setRouteMockEnabled as applyRouteMockEnabled,
@@ -20,7 +21,38 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingPersistEnv: Environment | null = null;
 
 function persistEnvironment(env: Environment): void {
-  void window.mockforge.environment.save(env).catch((err: unknown) => {
+  const sentRevision = env.revision ?? 0;
+  void window.mockforge.environment.save(env).then((result) => {
+    const current = useAppStore.getState().currentEnvironment;
+    if (!result.applied) {
+      if (
+        current
+        && current.id === result.environment.id
+        && (current.revision ?? 0) >= (result.environment.revision ?? 0)
+      ) {
+        return;
+      }
+      cancelEnvironmentPersist();
+      useAppStore.getState().applyExternalEnvironmentChange({
+        environments: useAppStore.getState().environments.map((item) => (
+          item.id === result.environment.id ? result.environment : item
+        )),
+        currentEnvironment: result.environment,
+        openEditor: false,
+      });
+      return;
+    }
+
+    if (pendingPersistEnv && pendingPersistEnv.id === result.environment.id && (pendingPersistEnv.revision ?? 0) === sentRevision) {
+      pendingPersistEnv = { ...pendingPersistEnv, revision: result.environment.revision };
+    }
+    const latest = useAppStore.getState().currentEnvironment;
+    if (latest && latest.id === result.environment.id && (latest.revision ?? 0) < (result.environment.revision ?? 0)) {
+      useAppStore.setState({
+        currentEnvironment: { ...latest, revision: result.environment.revision },
+      });
+    }
+  }).catch((err: unknown) => {
     const message = err instanceof Error
       ? err.message
       : useLocaleStore.getState().t.routes.saveRouteFailed;
@@ -37,6 +69,14 @@ function schedulePersistEnvironment(env: Environment): void {
     pendingPersistEnv = null;
     if (envToSave) persistEnvironment(envToSave);
   }, PERSIST_DEBOUNCE_MS);
+}
+
+export function cancelEnvironmentPersist(): void {
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  pendingPersistEnv = null;
 }
 
 export function flushEnvironmentPersist(): void {
@@ -250,6 +290,7 @@ interface AppState {
   environments: Environment[];
   setEnvironments: (envs: Environment[]) => void;
   refreshEnvironments: () => Promise<Environment[]>;
+  applyExternalEnvironmentChange: (payload: EnvironmentChangedPayload) => void;
   currentEnvironment: Environment | null;
   setCurrentEnvironment: (env: Environment | null) => void;
 
@@ -314,6 +355,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentEnvironment: current ?? state.currentEnvironment,
     }));
     return list;
+  },
+  applyExternalEnvironmentChange: (payload) => {
+    cancelEnvironmentPersist();
+    const previousId = get().currentEnvironment?.id ?? null;
+    const nextId = payload.currentEnvironment?.id ?? null;
+    set({
+      environments: payload.environments,
+      currentEnvironment: payload.currentEnvironment,
+      ...(payload.openEditor ? { activeTab: 'editor' as const } : {}),
+      ...(payload.editorTab ? { editorTab: payload.editorTab } : {}),
+      ...(payload.selectedRouteId !== undefined ? { selectedRouteId: payload.selectedRouteId } : {}),
+      ...(previousId !== nextId ? { traffic: [], selectedRequestId: null } : {}),
+    });
   },
   currentEnvironment: null,
   setCurrentEnvironment: (env) => {

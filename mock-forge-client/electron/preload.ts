@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { CapturedRequest } from '../shared/types';
+import type { EnvironmentChangedPayload } from '../shared/mcpBridge';
 import type { MockForgeAPI } from '../shared/mockforge-api';
 
 const api: MockForgeAPI = {
@@ -40,6 +41,11 @@ const api: MockForgeAPI = {
     rename: (id, name) => ipcRenderer.invoke('environment:rename', id, name),
     export: (id) => ipcRenderer.invoke('environment:export', id),
     import: () => ipcRenderer.invoke('environment:import'),
+    onChanged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: EnvironmentChangedPayload) => callback(payload);
+      ipcRenderer.on('environment:changed', handler);
+      return () => ipcRenderer.removeListener('environment:changed', handler);
+    },
   },
   route: {
     createFromRequest: (captured, kind) => ipcRenderer.invoke('route:create-from-request', captured, kind),
@@ -90,7 +96,7 @@ const api: MockForgeAPI = {
   },
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
-    apply: () => ipcRenderer.invoke('updates:apply'),
+    apply: (locale?: string) => ipcRenderer.invoke('updates:apply', locale),
     onProgress: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, percent: number | null) => callback(percent);
       ipcRenderer.on('updates:progress', handler);

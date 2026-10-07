@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "mockforge": {
+      "type": "stdio",
       "command": "node",
       "args": ["mcp/dist/index.js"],
       "env": {

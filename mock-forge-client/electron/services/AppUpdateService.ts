@@ -15,7 +15,9 @@ import {
   releaseFromTag,
   resolveUpdatePlan,
   tagFromGithubReleaseUrl,
+  updateWindowCopy,
 } from '../../shared/appUpdate';
+import { macUpdateWindowScript, windowsUpdateWindowScript } from '../../shared/updateWindowScripts';
 import { downloadFile } from '../utils/downloadFile';
 import { updatesSession } from '../utils/updatesSession';
 import { resolveCommandPath } from '../utils/platform';
@@ -71,6 +73,7 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
 export async function applyAppUpdate(
   onProgress?: (percent: number | null) => void,
   prepareToReplace?: () => Promise<void>,
+  locale?: string,
 ): Promise<{ success: boolean; error?: string; openedReleasePage?: boolean }> {
   const info = lastCheck ?? await checkForAppUpdate();
   if (info.error) {
@@ -101,7 +104,7 @@ export async function applyAppUpdate(
       return { success: false, error: 'Homebrew version is missing' };
     }
     await prepareToReplace?.();
-    startBrewUpgradeAndQuit(info.latestVersion, info.caskUrl);
+    startBrewUpgradeAndQuit(info.latestVersion, info.caskUrl, locale);
     return { success: true };
   }
 
@@ -125,7 +128,7 @@ export async function applyAppUpdate(
   const dest = join(app.getPath('temp'), info.assetName);
   await downloadFile(info.downloadUrl, dest, onProgress);
   await prepareToReplace?.();
-  startWindowsInstallAndQuit(dest);
+  startWindowsInstallAndQuit(dest, locale);
   return { success: true };
 }
 
@@ -260,52 +263,82 @@ function resolveBrewPath(): string | null {
   return resolveCommandPath('brew', getShellEnv().PATH);
 }
 
-function startBrewUpgradeAndQuit(version: string, caskUrl: string | null): void {
+function startBrewUpgradeAndQuit(version: string, caskUrl: string | null, locale?: string): void {
   const brew = resolveBrewPath();
   if (!brew) {
     throw new Error('Homebrew was not found');
   }
 
-  const scriptPath = join(tmpdir(), `mockforge-brew-upgrade-${Date.now()}.sh`);
+  const stamp = Date.now();
+  const scriptPath = join(tmpdir(), `mockforge-brew-upgrade-${stamp}.sh`);
+  const statusPath = join(tmpdir(), `mockforge-update-status-${stamp}.txt`);
+  const uiPath = join(tmpdir(), `mockforge-update-ui-${stamp}.applescript`);
   const caskPath = join(tmpdir(), 'mockforge-update.rb');
-  const script = brewUpgradeScript({
+  const copy = updateWindowCopy(locale || '');
+  writeFileSync(statusPath, 'closing', 'utf8');
+  writeFileSync(scriptPath, brewUpgradeScript({
     brewPath: brew,
     pid: process.pid,
     version,
     caskUrl,
     caskPath,
-  });
-  writeFileSync(scriptPath, script, 'utf8');
+    statusPath,
+  }), 'utf8');
   chmodSync(scriptPath, 0o755);
+  writeFileSync(uiPath, macUpdateWindowScript(), 'utf8');
 
-  const child = spawn('/bin/bash', [scriptPath], {
+  const worker = spawn('/bin/bash', [scriptPath], {
     detached: true,
     stdio: 'ignore',
     env: getShellEnv(),
   });
-  child.unref();
+  worker.unref();
+
+  if (worker.pid) {
+    const windowProcess = spawn('/usr/bin/osascript', [
+      uiPath,
+      String(worker.pid),
+      statusPath,
+      scriptPath,
+      copy.title,
+      copy.closing,
+      copy.installing,
+      copy.opening,
+      copy.failed,
+      copy.retry,
+      copy.close,
+    ], {
+      detached: true,
+      stdio: 'ignore',
+      env: getShellEnv(),
+    });
+    windowProcess.unref();
+  }
   quitSoon();
 }
 
-function startWindowsInstallAndQuit(setupPath: string): void {
-  const scriptPath = join(tmpdir(), `mockforge-win-upgrade-${Date.now()}.cmd`);
-  const relaunch = join(process.env.LOCALAPPDATA || '', 'Programs', 'MockForge', 'MockForge.exe');
-  const pid = process.pid;
-  const script = `@echo off
-:wait
-tasklist /FI "PID eq ${pid}" | find "${pid}" >nul
-if not errorlevel 1 (
-  timeout /t 1 /nobreak >nul
-  goto wait
-)
-start /wait "" ${cmdQuote(setupPath)} /S
-if exist ${cmdQuote(relaunch)} (
-  start "" ${cmdQuote(relaunch)}
-)
-`;
-  writeFileSync(scriptPath, script, 'utf8');
+function startWindowsInstallAndQuit(setupPath: string, locale?: string): void {
+  const stamp = Date.now();
+  const scriptPath = join(tmpdir(), `mockforge-win-upgrade-${stamp}.ps1`);
+  const configPath = join(tmpdir(), `mockforge-win-upgrade-${stamp}.json`);
+  const copy = updateWindowCopy(locale || '');
+  const config = {
+    pid: process.pid,
+    setupPath,
+    relaunchPaths: windowsRelaunchPaths(),
+    ...copy,
+  };
+  writeFileSync(scriptPath, `\uFEFF${windowsUpdateWindowScript()}`, 'utf8');
+  writeFileSync(configPath, `\uFEFF${JSON.stringify(config)}`, 'utf8');
 
-  const child = spawn('cmd.exe', ['/c', scriptPath], {
+  const child = spawn('powershell.exe', [
+    '-NoProfile',
+    '-STA',
+    '-ExecutionPolicy', 'Bypass',
+    '-WindowStyle', 'Hidden',
+    '-File', scriptPath,
+    configPath,
+  ], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
@@ -314,14 +347,24 @@ if exist ${cmdQuote(relaunch)} (
   quitSoon();
 }
 
+function windowsRelaunchPaths(): string[] {
+  const current = app.getPath('exe');
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] || '';
+  const candidates = [
+    current,
+    localAppData ? join(localAppData, 'Programs', 'MockForge', 'MockForge.exe') : '',
+    join(programFiles, 'MockForge', 'MockForge.exe'),
+    programFilesX86 ? join(programFilesX86, 'MockForge', 'MockForge.exe') : '',
+  ];
+  return [...new Set(candidates.filter((path) => path.length > 0))];
+}
+
 function quitSoon(): void {
   setTimeout(() => {
     app.quit();
-  }, 400);
-}
-
-function cmdQuote(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  }, 700);
 }
 
 function isMissingPublishedRelease(error: unknown): boolean {

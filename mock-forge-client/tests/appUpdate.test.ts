@@ -9,11 +9,13 @@ import {
   releaseFromTag,
   resolveUpdatePlan,
   tagFromGithubReleaseUrl,
+  updateWindowCopy,
   windowsSetupAssetName,
   windowsSetupAssetNameLegacy,
   type AppUpdateCheckResult,
   type GithubRelease,
 } from '../shared/appUpdate';
+import { macUpdateWindowScript, windowsUpdateWindowScript } from '../shared/updateWindowScripts';
 
 const release = (tag: string, assetNames: string[]): GithubRelease => ({
   tag_name: tag,
@@ -42,6 +44,24 @@ describe('brewUpgradeScript', () => {
     expect(script).toContain('jvictororiz/homebrew-mockforge');
     expect(script).not.toContain('uninstall');
     expect(script).toContain('app missing, installing from the tap');
+  });
+
+  it('reports progress and retries opening the app', () => {
+    const script = brewUpgradeScript({
+      brewPath: '/opt/homebrew/bin/brew',
+      pid: 42,
+      version: '0.7.29',
+      caskUrl: null,
+      caskPath: '/tmp/mockforge-update.rb',
+      statusPath: '/tmp/mockforge-status',
+    });
+
+    expect(script).toContain("status_path='/tmp/mockforge-status'");
+    expect(script).toContain('set_status installing');
+    expect(script).toContain('set_status opening');
+    expect(script).toContain('open attempt');
+    expect(script).toContain('set_status failed');
+    expect(script).toContain('set_status done');
   });
 });
 
@@ -96,6 +116,36 @@ describe('releaseFromTag', () => {
     expect(plan.downloadUrl).toBe(
       'https://github.com/jvictororiz/Mock-Forge/releases/download/v0.7.17/MockForge-mac-arm64.dmg',
     );
+  });
+});
+
+describe('update window', () => {
+  it('uses the app language in the native progress window', () => {
+    expect(updateWindowCopy('pt-BR').installing).toBe('Instalando a atualização…');
+    expect(updateWindowCopy('pt-BR').retry).toBe('Tentar novamente');
+    expect(updateWindowCopy('en').opening).toBe('Opening MockForge…');
+    expect(updateWindowCopy('en').retry).toBe('Try again');
+  });
+
+  it('shows a Windows progress window and reopens whatever install the setup registered', () => {
+    const script = windowsUpdateWindowScript();
+    expect(script).toContain('System.Windows.Forms.ProgressBar');
+    expect(script).toContain('ProgressBarStyle]::Marquee');
+    expect(script).toContain('DisplayName -ne "MockForge"');
+    expect(script).toContain('$config.relaunchPaths');
+    expect(script).toContain('ArgumentList "/S"');
+    expect(script).toContain('System.Windows.Forms.Button');
+    expect(script).toContain('$config.retry');
+  });
+
+  it('shows a macOS progress window while the upgrade script runs', () => {
+    const script = macUpdateWindowScript();
+    expect(script).toContain('NSProgressIndicator');
+    expect(script).toContain('NSWindow');
+    expect(script).toContain('workerIsGone');
+    expect(script).toContain('installingText');
+    expect(script).toContain('retryText');
+    expect(script).toContain('addButtonWithTitle:retryText');
   });
 });
 

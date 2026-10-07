@@ -57,6 +57,7 @@ export class EnvironmentStorage {
       ...JSON.parse(JSON.stringify(env)),
       id: randomUUID(),
       name: newName || `${env.name} (copy)`,
+      revision: 1,
     };
     this.save(copy);
     return copy;
@@ -68,6 +69,7 @@ export class EnvironmentStorage {
       name,
       port,
       routes: [],
+      revision: 1,
     };
     this.save(env);
     return env;

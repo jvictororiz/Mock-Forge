@@ -115,8 +115,10 @@ export function SettingsView() {
         await window.mockforge.server.stop();
       }
 
-      const savedEnv = await window.mockforge.environment.save(updated);
-      setCurrentEnvironment(savedEnv);
+      const result = await window.mockforge.environment.save(updated);
+      if (result.applied) {
+        setCurrentEnvironment(result.environment);
+      }
 
       if (needsRestart) {
         const result = await window.mockforge.server.start();

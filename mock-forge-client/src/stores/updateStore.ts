@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { mergeBackgroundUpdateCheck, type AppUpdateCheckResult } from '../../shared/appUpdate';
+import { useLocaleStore } from './localeStore';
 
 type ApplyResult = {
   success: boolean;
@@ -71,7 +72,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
     bindProgress();
     set({ applying: true, progress: null });
     try {
-      const result = await window.mockforge.updates.apply();
+      const result = await window.mockforge.updates.apply(useLocaleStore.getState().locale);
       set({ applying: false });
       return result;
     } catch (error) {

@@ -77,6 +77,8 @@ export interface Environment {
   /** Raw upstream URL as entered in settings (preserves trailing slash). */
   upstreamUrl?: string;
   upstream?: Upstream;
+  /** Bumped when the MCP writes, so an older editor autosave can be discarded. */
+  revision?: number;
 }
 
 export type ConsumerPlatform = 'android' | 'ios' | 'mac' | 'mockforge' | 'unknown';

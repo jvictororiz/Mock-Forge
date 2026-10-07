@@ -128,12 +128,46 @@ export function brewInstallCommand(): string {
   return `brew install --cask ${HOMEBREW_TAP}/${CASK_TOKEN}`;
 }
 
+export type UpdateWindowCopy = {
+  title: string;
+  closing: string;
+  installing: string;
+  opening: string;
+  failed: string;
+  retry: string;
+  close: string;
+};
+
+export function updateWindowCopy(locale: string): UpdateWindowCopy {
+  if (locale.toLowerCase().startsWith('pt')) {
+    return {
+      title: 'MockForge',
+      closing: 'Fechando o MockForge…',
+      installing: 'Instalando a atualização…',
+      opening: 'Abrindo o MockForge…',
+      failed: 'Não foi possível concluir a atualização.',
+      retry: 'Tentar novamente',
+      close: 'Fechar',
+    };
+  }
+  return {
+    title: 'MockForge',
+    closing: 'Closing MockForge…',
+    installing: 'Installing the update…',
+    opening: 'Opening MockForge…',
+    failed: 'The update could not finish.',
+    retry: 'Try again',
+    close: 'Close',
+  };
+}
+
 export function brewUpgradeScript(input: {
   brewPath: string;
   pid: number;
   version: string;
   caskUrl: string | null;
   caskPath: string;
+  statusPath?: string;
 }): string {
   if (!Number.isInteger(input.pid) || input.pid < 0) {
     throw new Error('Invalid process id for the Homebrew upgrade script');
@@ -144,6 +178,7 @@ export function brewUpgradeScript(input: {
   const cask = shellQuote(CASK_TOKEN);
   const caskUrl = shellQuote(input.caskUrl ?? '');
   const caskPath = shellQuote(input.caskPath);
+  const statusPath = shellQuote(input.statusPath ?? '');
   return `#!/bin/bash
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
 export HOMEBREW_NO_AUTO_UPDATE=1
@@ -153,6 +188,13 @@ log="\${HOME}/Library/Logs/MockForge/update.log"
 mkdir -p "\$(dirname "\$log")" 2>/dev/null || true
 exec >>"\$log" 2>&1
 echo "---- \$(date) target ${version} ----"
+status_path=${statusPath}
+set_status() {
+  if [ -n "\$status_path" ]; then
+    printf '%s' "\$1" > "\$status_path"
+  fi
+}
+set_status closing
 while kill -0 ${input.pid} 2>/dev/null; do
   sleep 0.2
 done
@@ -163,6 +205,7 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
   sleep 0.3
 done
 sleep 0.4
+set_status installing
 
 installed_version() {
   ${brew} list --cask --versions ${cask} 2>/dev/null | awk '{print \$2}' | head -n1
@@ -248,7 +291,23 @@ open_newest() {
   fi
   /usr/bin/open -b com.mockforge.app
 }
-open_newest || echo "open failed: \$?"
+set_status opening
+sleep 1
+opened=0
+for _try in 1 2 3 4 5 6; do
+  if open_newest; then
+    opened=1
+    break
+  fi
+  echo "open attempt \$_try failed"
+  sleep 1
+done
+if [ "\$opened" -ne 1 ]; then
+  set_status failed
+  echo "open failed"
+  exit 1
+fi
+set_status done
 `;
 }
 
